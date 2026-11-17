@@ -308,7 +308,7 @@
     root.innerHTML = `
       <div class="sd-w-title">Base-62 encoder (ID → short code)</div>
       <div class="sd-w-row">
-        <label>Numeric ID<input type="text" data-k="n" value="2009215674938" style="width:12rem;padding:.3rem .45rem;border-radius:6px;border:1px solid var(--sd-card-border);background:var(--md-default-bg-color);color:var(--md-default-fg-color)"></label>
+        <label>Numeric ID<input type="text" data-k="n" value="3141592653589" style="width:12rem;padding:.3rem .45rem;border-radius:6px;border:1px solid var(--sd-card-border);background:var(--md-default-bg-color);color:var(--md-default-fg-color)"></label>
         <label>Short code<input type="text" data-k="c" style="width:9rem;padding:.3rem .45rem;border-radius:6px;border:1px solid var(--sd-card-border);background:var(--md-default-bg-color);color:var(--md-default-fg-color)"></label>
       </div>
       <div class="sd-log" data-o="steps"></div>`;

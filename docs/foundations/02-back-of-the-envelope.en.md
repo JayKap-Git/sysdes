@@ -220,16 +220,16 @@ compress better, store fewer renditions for unpopular videos — become first-cl
 
 ## Worked example 4 · URL shortener
 
-**Assumptions:** **100 M** new short URLs/day; read:write = 10:1; keep links for 10 years; ~100 bytes per record.
+**Assumptions:** **40 M** new short links/day; each link is opened ~50 times over its life (read:write = 50:1); keep links for 15 years; ~250 bytes per record (long URL + code + owner + timestamps).
 
-- Write QPS = 100 M / 10⁵ ≈ **1,160/sec** (≈1,000)
-- Read QPS = ×10 ≈ **11,600/sec**; peak ×2 ≈ **23K/sec**
-- Records over 10 years = 100 M × 365 × 10 = **365 B** records
-- Storage = 365 B × 100 B ≈ **36.5 TB**
-- Short-code length: need ≥ 365 B unique codes. With base-62, 62⁶ ≈ 57 B (too few), **62⁷ ≈ 3.5 T** ✓ → **7 characters**.
+- Write QPS = 40 M / 10⁵ ≈ **400/sec** (precisely ~460)
+- Read QPS = ×50 ≈ **20,000–23,000/sec**; peak ×2 ≈ **~45K/sec**
+- Records over 15 years = 40 M × 365 × 15 ≈ **219 B** records
+- Storage = 219 B × 250 B ≈ **55 TB** (before replication)
+- Short-code length: need ≥ 219 B unique codes. Base-62: 62⁶ ≈ 57 B (too few), **62⁷ ≈ 3.5 T** ✓ → **7 characters**.
 
-**Decision:** small records, huge count → a sharded key-value store works well; reads are 10× writes → cache hot links.
-(Full design in Chapter 8.)
+**Decision:** small records, huge count, reads ≫ writes → a sharded key-value store plus an aggressive cache for hot
+links. (Full design in Chapter 8.)
 
 ---
 

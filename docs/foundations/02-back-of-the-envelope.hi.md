@@ -219,15 +219,15 @@ unpopular videos ke kam renditions — first-class design topics ban jaate hain 
 
 ## Worked example 4 · URL shortener
 
-**Assumptions:** **100 M** naye short URLs/din; read:write = 10:1; links 10 saal rakhne hain; har record ~100 bytes.
+**Assumptions:** roz **40 M** naye short links; har link apni zindagi mein ~50 baar khulta hai (read:write = 50:1); links 15 saal rakhne hain; har record ~250 bytes (long URL + code + owner + timestamps).
 
-- Write QPS = 100 M / 10⁵ ≈ **1,160/sec** (≈1,000)
-- Read QPS = ×10 ≈ **11,600/sec**; peak ×2 ≈ **23K/sec**
-- 10 saal mein records = 100 M × 365 × 10 = **365 B** records
-- Storage = 365 B × 100 B ≈ **36.5 TB**
-- Short-code length: kam se kam 365 B unique codes chahiye. Base-62 mein 62⁶ ≈ 57 B (kam), **62⁷ ≈ 3.5 T** ✓ → **7 characters**.
+- Write QPS = 40 M / 10⁵ ≈ **400/sec** (exactly ~460)
+- Read QPS = ×50 ≈ **20,000–23,000/sec**; peak ×2 ≈ **~45K/sec**
+- 15 saal mein records = 40 M × 365 × 15 ≈ **219 B** records
+- Storage = 219 B × 250 B ≈ **55 TB** (replication se pehle)
+- Short-code length: kam se kam 219 B unique codes chahiye. Base-62: 62⁶ ≈ 57 B (kam), **62⁷ ≈ 3.5 T** ✓ → **7 characters**.
 
-**Decision:** chhote records, bahut zyada count → sharded key-value store achha chalega; reads writes ke 10× → hot links cache karo.
+**Decision:** chhote records, bahut zyada count, reads ≫ writes → sharded key-value store plus hot links ke liye aggressive cache.
 (Poora design Chapter 8 mein.)
 
 ---
