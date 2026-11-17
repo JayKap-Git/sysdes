@@ -1,0 +1,2489 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Generating unique, time-sortable 64-bit IDs across many machines — auto-increment, multi-master, UUID, ticket servers, range allocation, Twitter Snowflake (with Java code), clock skew, and modern UUIDv7/ULID.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/building-blocks/07-unique-id-generator/">
+      
+      
+        <link rel="prev" href="../06-key-value-store/">
+      
+      
+        <link rel="next" href="../../case-studies/08-url-shortener/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../hi/building-blocks/07-unique-id-generator/" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>07 · Unique ID Generator - SysDes — System Design, Deeply</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#07-design-a-unique-id-generator-in-distributed-systems" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Read every chapter in <strong>English</strong> or <strong>Hinglish</strong> — use the 🌐 switch in the header
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SysDes — System Design, Deeply" class="md-header__button md-logo" aria-label="SysDes — System Design, Deeply" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Deeply
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              07 · Unique ID Generator
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../hi/building-blocks/07-unique-id-generator/" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Start Here
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../case-studies/08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revise & Beyond
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SysDes — System Design, Deeply" class="md-nav__button md-logo" aria-label="SysDes — System Design, Deeply" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Deeply
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start Here
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Scale from Zero to Millions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · The Interview Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-intuition-token-numbers-at-a-hospital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The intuition: token numbers at a hospital
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-the-candidate-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · The candidate approaches
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · The candidate approaches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-multi-master-replication-with-a-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1 · Multi-master replication with a step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-uuid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2 · UUID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-3-ticket-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 3 · Ticket server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-4-twitter-snowflake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 4 · Twitter Snowflake
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive-on-snowflake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive on Snowflake
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive on Snowflake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-timestamp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The timestamp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-sequence-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The sequence number
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capacity-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capacity check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#java-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-the-hard-parts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up: the hard parts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4 · Wrap-up: the hard parts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#clock-synchronisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clock synchronisation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuning-the-bit-sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuning the bit sections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assigning-machine-ids-safely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assigning machine IDs safely
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High availability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#privacy-guessability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy / guessability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#going-deeper-uuidv7-ulid-ksuid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Going deeper: UUIDv7, ULID, KSUID
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revise & Beyond
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revise & Beyond
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · The Learning Continues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-intuition-token-numbers-at-a-hospital" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The intuition: token numbers at a hospital
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-the-candidate-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · The candidate approaches
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · The candidate approaches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-multi-master-replication-with-a-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1 · Multi-master replication with a step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-uuid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2 · UUID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-3-ticket-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 3 · Ticket server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-4-twitter-snowflake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 4 · Twitter Snowflake
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive-on-snowflake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive on Snowflake
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive on Snowflake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-timestamp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The timestamp
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-sequence-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The sequence number
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capacity-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capacity check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#java-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-the-hard-parts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up: the hard parts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4 · Wrap-up: the hard parts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#clock-synchronisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clock synchronisation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuning-the-bit-sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuning the bit sections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assigning-machine-ids-safely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assigning machine IDs safely
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High availability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#privacy-guessability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy / guessability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#going-deeper-uuidv7-ulid-ksuid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Going deeper: UUIDv7, ULID, KSUID
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/building-blocks/07-unique-id-generator.en.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="07-design-a-unique-id-generator-in-distributed-systems">07 · Design a Unique ID Generator in Distributed Systems<a class="headerlink" href="#07-design-a-unique-id-generator-in-distributed-systems" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 35 min read</span>
+<span class="hot">🔥 Needed by URL shortener, chat, feeds, payments…</span>
+<span>Book: Chapter 7</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>A single database's <code>AUTO_INCREMENT</code> can't keep up across many machines and is a single point of failure.</li>
+<li>Options: <strong>multi-master with step</strong> (simple, not time-sortable, hard to scale), <strong>UUID</strong> (no coordination, but 128-bit and random), <strong>ticket server / range allocation</strong> (central counter, numeric, but a coordination point), <strong>Snowflake</strong> (64-bit = timestamp + datacenter + machine + sequence).</li>
+<li><strong>Snowflake</strong> fits the classic requirements: 64-bit, numeric, <strong>roughly time-ordered</strong>, ~4 million IDs/sec per machine, no coordination per ID.</li>
+<li>Its weak spot is the <strong>clock</strong>: if a machine's clock goes backwards, it could repeat IDs — detect it and wait/fail. Its other limit: only <strong>~69 years</strong> of timestamps from a custom epoch.</li>
+<li>Modern alternatives: <strong>UUIDv7 / ULID</strong> — time-ordered 128-bit IDs that keep UUID's no-coordination property and index nicely.</li>
+</ul>
+</div>
+<h2 id="the-intuition-token-numbers-at-a-hospital">The intuition: token numbers at a hospital<a class="headerlink" href="#the-intuition-token-numbers-at-a-hospital" title="Permanent link">&para;</a></h2>
+<p>A hospital with one reception desk hands out token numbers 1, 2, 3… — easy, but the queue for the token
+itself becomes the bottleneck, and if that desk closes, nobody gets a token.</p>
+<p>Open 5 desks? You need a rule so no two desks hand out the same number. Desk 1 gives 1, 6, 11…; desk 2
+gives 2, 7, 12… That works until you open a 6<sup>th</sup> desk. Or each token could be "<strong>time + desk number + a
+counter</strong>" — e.g. <code>10:42:07 · desk 3 · #12</code>. Unique without any desk talking to another, and you can still
+roughly sort patients by arrival. That last idea is Snowflake.</p>
+<hr />
+<h2 id="step-1-scope">Step 1 · Scope<a class="headerlink" href="#step-1-scope" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Clarifying conversation</p>
+<p><strong>You:</strong> What must the IDs satisfy beyond uniqueness? — <strong>Interviewer:</strong> Numeric only, and fit in a 64-bit integer.
+<strong>You:</strong> Do they need to be sortable? — <strong>I:</strong> Yes — if A was created clearly before B, A's ID should be smaller. Strict per-millisecond order isn't required.
+<strong>You:</strong> Throughput? — <strong>I:</strong> At least 10,000 IDs per second overall, with room to grow.
+<strong>You:</strong> Can IDs be guessable? — <strong>I:</strong> That's fine for this system (they're internal row IDs).
+<strong>You:</strong> Many data centers? — <strong>I:</strong> Yes, several.</p>
+</div>
+<p><strong>Requirements:</strong> unique · numeric · 64-bit · ordered by creation time (approximately) · ≥10K IDs/s · no single point of failure · low latency (generated locally, no network hop ideally).</p>
+<p>Why not just use the DB's auto-increment? In a distributed system there are <strong>many databases</strong> (shards), each
+with its own counter → duplicates. And a single global counter DB is a bottleneck and a SPOF.</p>
+<hr />
+<h2 id="step-2-the-candidate-approaches">Step 2 · The candidate approaches<a class="headerlink" href="#step-2-the-candidate-approaches" title="Permanent link">&para;</a></h2>
+<h3 id="option-1-multi-master-replication-with-a-step">Option 1 · Multi-master replication with a step<a class="headerlink" href="#option-1-multi-master-replication-with-a-step" title="Permanent link">&para;</a></h3>
+<p>Use <code>AUTO_INCREMENT</code> on each of <strong>k</strong> database servers, but increase by <strong>k</strong> instead of 1:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>k = 3 servers
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>DB1: 1, 4, 7, 10, …     (start 1, step 3)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>DB2: 2, 5, 8, 11, …     (start 2, step 3)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>DB3: 3, 6, 9, 12, …     (start 3, step 3)
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>✅</th>
+<th>❌</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uses plain DB features; numeric; scales a bit with more DBs</td>
+<td>IDs are <strong>not time-ordered across servers</strong> (DB3's #9 may be created after DB1's #10)</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Adding/removing a server</strong> changes k → renumbering mess</td>
+</tr>
+<tr>
+<td></td>
+<td>Doesn't scale well across <strong>multiple data centers</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="option-2-uuid">Option 2 · UUID<a class="headerlink" href="#option-2-uuid" title="Permanent link">&para;</a></h3>
+<p>A <strong>UUID</strong> is a 128-bit number generated locally (e.g. <code>09c93e62-50b4-468d-bf8a-c07e1040bfb2</code>). The common
+<strong>version 4</strong> is random: 122 random bits. Collisions are astronomically unlikely — you'd need to generate
+about <strong>10⁹ UUIDs per second for ~86 years</strong> to reach a 50% chance of a single duplicate.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">String</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="na">util</span><span class="p">.</span><span class="na">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">().</span><span class="na">toString</span><span class="p">();</span><span class="w">   </span><span class="c1">// no coordination at all</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>✅</th>
+<th>❌</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trivial; every server generates independently — no coordination, no SPOF</td>
+<td><strong>128 bits</strong>, not 64</td>
+</tr>
+<tr>
+<td>Scales perfectly — add servers freely</td>
+<td><strong>Not time-ordered</strong> (v4 is random)</td>
+</tr>
+<tr>
+<td></td>
+<td>Can be non-numeric (hex string with dashes)</td>
+</tr>
+<tr>
+<td></td>
+<td>Random keys scatter writes across a B-tree index → page splits, poor cache locality</td>
+</tr>
+</tbody>
+</table>
+<h3 id="option-3-ticket-server">Option 3 · Ticket server<a class="headerlink" href="#option-3-ticket-server" title="Permanent link">&para;</a></h3>
+<p>A single, dedicated database whose only job is to hand out numbers (Flickr popularised this):</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- a table with one row; REPLACE bumps the auto-increment and returns a fresh ID</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">REPLACE</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">tickets64</span><span class="w"> </span><span class="p">(</span><span class="n">stub</span><span class="p">)</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="s1">'a'</span><span class="p">);</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">LAST_INSERT_ID</span><span class="p">();</span>
+</span></code></pre></div>
+<p>Every service calls the ticket server for an ID.</p>
+<table>
+<thead>
+<tr>
+<th>✅</th>
+<th>❌</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Numeric, simple, works well at small-to-medium scale</td>
+<td><strong>Single point of failure</strong> — if it's down, nobody can create anything</td>
+</tr>
+<tr>
+<td></td>
+<td>Every ID costs a network round trip</td>
+</tr>
+<tr>
+<td></td>
+<td>Running two ticket servers (odd/even) brings back sync problems</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Range allocation (hi/lo)</strong> — the practical upgrade: instead of one ID per call, the ticket server hands out a
+<strong>block</strong> (e.g. 10,000 IDs). Each app server burns through its block locally and asks for the next block when
+it's nearly empty. Network calls drop by 10,000×, and a ticket-server outage only hurts once blocks run out.
+Downside: IDs are only roughly ordered, and a crashed server "wastes" the rest of its block (gaps are fine).</p>
+<h3 id="option-4-twitter-snowflake">Option 4 · Twitter Snowflake<a class="headerlink" href="#option-4-twitter-snowflake" title="Permanent link">&para;</a></h3>
+<p>Divide a 64-bit ID into sections, each meaning something:</p>
+<div class="sd-widget" data-widget="snowflake"></div>
+
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Bits</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sign</td>
+<td>1</td>
+<td>Always 0 (keeps the number positive in signed 64-bit types)</td>
+</tr>
+<tr>
+<td><strong>Timestamp</strong></td>
+<td>41</td>
+<td>Milliseconds since a <strong>custom epoch</strong></td>
+</tr>
+<tr>
+<td><strong>Datacenter ID</strong></td>
+<td>5</td>
+<td>2⁵ = 32 data centers</td>
+</tr>
+<tr>
+<td><strong>Machine ID</strong></td>
+<td>5</td>
+<td>2⁵ = 32 machines per data center</td>
+</tr>
+<tr>
+<td><strong>Sequence</strong></td>
+<td>12</td>
+<td>Counter within the same millisecond on the same machine; 2¹² = 4,096 values; resets to 0 every ms</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid"><code>flowchart LR
+    s["0&lt;br/&gt;sign · 1"] --- t["timestamp since epoch&lt;br/&gt;41 bits"] --- d["datacenter&lt;br/&gt;5 bits"] --- m["machine&lt;br/&gt;5 bits"] --- q["sequence&lt;br/&gt;12 bits"]</code></pre>
+<p>Datacenter and machine IDs are assigned at <strong>startup</strong> (from config or a coordination service like ZooKeeper)
+and don't change while the process runs. Timestamp and sequence are generated <strong>as the program runs</strong>.</p>
+<h3 id="comparison">Comparison<a class="headerlink" href="#comparison" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Size</th>
+<th>Sortable by time</th>
+<th>Coordination per ID</th>
+<th>SPOF</th>
+<th>Scales across DCs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multi-master step</td>
+<td>64</td>
+<td>❌</td>
+<td>No</td>
+<td>No</td>
+<td>Poorly</td>
+</tr>
+<tr>
+<td>UUIDv4</td>
+<td>128</td>
+<td>❌</td>
+<td>No</td>
+<td>No</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Ticket server</td>
+<td>64</td>
+<td>✅ (globally)</td>
+<td><strong>Yes</strong> (network call)</td>
+<td><strong>Yes</strong></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Range allocation</td>
+<td>64</td>
+<td>~ (per block)</td>
+<td>Rarely</td>
+<td>Partly</td>
+<td>OK</td>
+</tr>
+<tr>
+<td><strong>Snowflake</strong></td>
+<td><strong>64</strong></td>
+<td><strong>✅ (≈ by ms)</strong></td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td><strong>✅</strong></td>
+</tr>
+<tr>
+<td>UUIDv7 / ULID</td>
+<td>128</td>
+<td>✅ (by ms)</td>
+<td>No</td>
+<td>No</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>Snowflake meets all our requirements → let's go deep.</p>
+<hr />
+<h2 id="step-3-deep-dive-on-snowflake">Step 3 · Deep dive on Snowflake<a class="headerlink" href="#step-3-deep-dive-on-snowflake" title="Permanent link">&para;</a></h2>
+<h3 id="the-timestamp">The timestamp<a class="headerlink" href="#the-timestamp" title="Permanent link">&para;</a></h3>
+<p>41 bits of milliseconds. Shift the bits back to get the time:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>id → binary → take bits 63..22 (41 bits) → decimal → add the epoch → Unix ms → date
+</span></code></pre></div>
+<p><strong>How long does it last?</strong> <code>2⁴¹ − 1 ms ≈ 2.2 × 10¹² ms ≈ 69.7 years</code>.</p>
+<p>That's why you use a <strong>custom epoch</strong> close to your launch date rather than 1970. Twitter's epoch is
+<strong>1288834974657</strong> (Nov 04 2010, 01:42:54 UTC) → their IDs run out around 2080. Starting from 1970 you'd have
+already burned 40+ of those 69 years.</p>
+<p>Because the timestamp sits in the <strong>high bits</strong>, IDs <strong>sort by time</strong> — and since IDs grow over time, new rows
+append at the end of B-tree indexes (good locality, unlike random UUIDs).</p>
+<h3 id="the-sequence-number">The sequence number<a class="headerlink" href="#the-sequence-number" title="Permanent link">&para;</a></h3>
+<p>12 bits → 4,096 IDs per millisecond per machine → <strong>~4 million IDs/sec per machine</strong>. If a machine somehow
+needs more than 4,096 in one millisecond, it <strong>waits until the next millisecond</strong>.</p>
+<h3 id="capacity-check">Capacity check<a class="headerlink" href="#capacity-check" title="Permanent link">&para;</a></h3>
+<p><code>32 DCs × 32 machines × 4,096 IDs/ms</code> ≈ <strong>4.2 billion IDs per millisecond</strong> cluster-wide. Our requirement
+was 10K/s. Massive headroom.</p>
+<h3 id="java-implementation">Java implementation<a class="headerlink" href="#java-implementation" title="Permanent link">&para;</a></h3>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Snowflake</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">EPOCH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1_288_834_974_657L</span><span class="p">;</span><span class="w">         </span><span class="c1">// custom epoch (ms)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">DC_BITS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">MACHINE_BITS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">SEQ_BITS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">12</span><span class="p">;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">MAX_SEQ</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1L</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">SEQ_BITS</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">      </span><span class="c1">// 4095</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">MACHINE_SHIFT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SEQ_BITS</span><span class="p">;</span><span class="w">            </span><span class="c1">// 12</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">DC_SHIFT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SEQ_BITS</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">MACHINE_BITS</span><span class="p">;</span><span class="w">  </span><span class="c1">// 17</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">TS_SHIFT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DC_SHIFT</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">DC_BITS</span><span class="p">;</span><span class="w">       </span><span class="c1">// 22</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">datacenterId</span><span class="p">,</span><span class="w"> </span><span class="n">machineId</span><span class="p">;</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">lastTs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">1L</span><span class="p">,</span><span class="w"> </span><span class="n">sequence</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="n">L</span><span class="p">;</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">Snowflake</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">datacenterId</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">machineId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">datacenterId</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">datacenterId</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">31</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">machineId</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">machineId</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">31</span><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalArgumentException</span><span class="p">(</span><span class="s">"ids must be 0..31"</span><span class="p">);</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">datacenterId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">datacenterId</span><span class="p">;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">machineId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">machineId</span><span class="p">;</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">nextId</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">ts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ts</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">lastTs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">                                    </span><span class="c1">// clock moved backwards!</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">            </span><span class="kt">long</span><span class="w"> </span><span class="n">drift</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lastTs</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">ts</span><span class="p">;</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">drift</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">"clock moved back "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">drift</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">" ms"</span><span class="p">);</span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">            </span><span class="n">ts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">waitUntil</span><span class="p">(</span><span class="n">lastTs</span><span class="p">);</span><span class="w">                           </span><span class="c1">// small drift: just wait it out</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ts</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">lastTs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">            </span><span class="n">sequence</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">sequence</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">MAX_SEQ</span><span class="p">;</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sequence</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">ts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">waitUntil</span><span class="p">(</span><span class="n">lastTs</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w">    </span><span class="c1">// 4,096 used up this ms</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">            </span><span class="n">sequence</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">        </span><span class="n">lastTs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ts</span><span class="p">;</span>
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="n">ts</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">EPOCH</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">TS_SHIFT</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">(</span><span class="n">datacenterId</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">DC_SHIFT</span><span class="p">)</span>
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">             </span><span class="o">|</span><span class="w"> </span><span class="p">(</span><span class="n">machineId</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">MACHINE_SHIFT</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">sequence</span><span class="p">;</span>
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">waitUntil</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">target</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">target</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">onSpinWait</span><span class="p">();</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="p">}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="step-4-wrap-up-the-hard-parts">Step 4 · Wrap-up: the hard parts<a class="headerlink" href="#step-4-wrap-up-the-hard-parts" title="Permanent link">&para;</a></h2>
+<h3 id="clock-synchronisation">Clock synchronisation<a class="headerlink" href="#clock-synchronisation" title="Permanent link">&para;</a></h3>
+<p>Snowflake assumes each machine's clock is sane. In reality:</p>
+<ul>
+<li>Clocks drift; <strong>NTP</strong> corrects them, and a correction can move a clock <strong>backwards</strong>. If <code>ts &lt; lastTs</code>, naïvely we'd reuse old timestamps and could <strong>repeat an ID</strong>. The code above waits for small drift and refuses (alerts) for large drift.</li>
+<li>Leap seconds and VM pauses cause similar surprises. Many companies "smear" leap seconds across a day to avoid jumps.</li>
+<li>Across machines, IDs are only <strong>roughly</strong> ordered — two machines' clocks differ by a few ms, so an ID from machine A can be smaller than one generated slightly earlier on machine B. That's usually fine ("k-sorted").</li>
+</ul>
+<h3 id="tuning-the-bit-sections">Tuning the bit sections<a class="headerlink" href="#tuning-the-bit-sections" title="Permanent link">&para;</a></h3>
+<p>The 41/5/5/12 split isn't sacred:</p>
+<ul>
+<li>Low traffic but long lifetime → fewer sequence bits, more timestamp bits.</li>
+<li>Many machines, one DC → merge datacenter + machine into a 10-bit <strong>worker ID</strong> (1,024 workers).</li>
+<li>Need more than 4,096/ms on a machine → more sequence bits.</li>
+</ul>
+<h3 id="assigning-machine-ids-safely">Assigning machine IDs safely<a class="headerlink" href="#assigning-machine-ids-safely" title="Permanent link">&para;</a></h3>
+<p>Two processes with the same <code>(datacenter, machine)</code> would generate duplicates. Assign worker IDs via
+<strong>ZooKeeper/etcd ephemeral nodes</strong>, a database lease table, or Kubernetes StatefulSet ordinals — never by hand-editing config.</p>
+<h3 id="high-availability">High availability<a class="headerlink" href="#high-availability" title="Permanent link">&para;</a></h3>
+<p>The generator is a library inside each service (no network hop) — or a tiny stateless service behind a load
+balancer. Either way there's no shared state to lose.</p>
+<h3 id="privacy-guessability">Privacy / guessability<a class="headerlink" href="#privacy-guessability" title="Permanent link">&para;</a></h3>
+<p>Snowflake IDs leak <strong>creation time</strong> and roughly how many IDs a machine produced. For public-facing IDs where
+that matters (e.g. invoice numbers, user IDs in URLs), add an opaque layer: encrypt/permute the ID or expose a
+separate random public ID.</p>
+<hr />
+<h2 id="going-deeper-uuidv7-ulid-ksuid">Going deeper: UUIDv7, ULID, KSUID<a class="headerlink" href="#going-deeper-uuidv7-ulid-ksuid" title="Permanent link">&para;</a></h2>
+<p>Newer formats keep UUID's "no coordination, 128 bits" model but put a <strong>timestamp first</strong>, so they sort by time:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Layout</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>UUIDv7</strong> (RFC 9562, 2024)</td>
+<td>48-bit Unix ms timestamp + version bits + 74 random bits</td>
+<td>Standard UUID type, time-ordered → <strong>index-friendly</strong> in Postgres/MySQL. A great default today when 128 bits is OK.</td>
+</tr>
+<tr>
+<td><strong>ULID</strong></td>
+<td>48-bit ms timestamp + 80 random bits, encoded as 26-char Crockford base-32</td>
+<td>Lexicographically sortable strings; URL-safe</td>
+</tr>
+<tr>
+<td><strong>KSUID</strong> (Segment)</td>
+<td>32-bit seconds timestamp + 128 random bits → 160 bits, base-62 string</td>
+<td>Sortable to the second</td>
+</tr>
+</tbody>
+</table>
+<p>When the requirement says <strong>64-bit numeric</strong>, Snowflake (or a variant like Sonyflake, Instagram's
+Postgres-based shard IDs, or Discord's Snowflake) is still the answer.</p>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>Your NTP daemon moves a server's clock back by 2 seconds. What happens?</summary>
+<p>For up to 2 seconds that machine would produce timestamps it has already used. If the sequence also restarts, it
+could emit <strong>duplicate IDs</strong>. Mitigations: detect <code>now &lt; lastTs</code>; for small drift, spin until the clock catches up;
+for large drift, refuse to generate (fail the request / take the node out of rotation) and alert. Also configure NTP to
+<strong>slew</strong> (adjust gradually) rather than step the clock.</p>
+</details>
+<details class="question">
+<summary>How do you guarantee two machines never share a machine ID?</summary>
+<p>Don't rely on static config. On startup, acquire a worker ID from a coordination service — e.g. create an ephemeral
+sequential node in ZooKeeper, or claim a row with a lease in a DB and renew it periodically. If the lease is lost, stop
+generating IDs. In Kubernetes, StatefulSet pod ordinals are another stable source.</p>
+</details>
+<details class="question">
+<summary>Are Snowflake IDs strictly increasing?</summary>
+<p>Per machine, yes (monotonic within a process). Globally, only <strong>approximately</strong> — ordered by millisecond, then by
+datacenter/machine bits, and different machines' clocks differ slightly. If you need a strict global order you need a
+single sequencer (or a consensus log), which reintroduces a bottleneck.</p>
+</details>
+<details class="question">
+<summary>Why not just use UUIDv4 as a primary key?</summary>
+<p>It works, but it's 16 bytes (vs 8) — bigger indexes in every table that references it — and random inserts cause
+B-tree page splits and poor cache locality, hurting write throughput at scale. UUIDv7 fixes the ordering problem if
+128 bits is acceptable.</p>
+</details>
+<details class="question">
+<summary>You need 50,000 IDs per millisecond on one machine. What do you change?</summary>
+<p>4,096/ms isn't enough. Steal bits: e.g. 8 bits of machine space (if you have few machines per DC) → 16-bit sequence =
+65,536/ms. Or run several generator instances with distinct worker IDs on the same host.</p>
+</details>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Decode by hand</summary>
+<p>A Snowflake-style ID (Twitter layout) has the binary sections: timestamp = 1,000,000,000 ms after the epoch,
+datacenter = 3, machine = 17, sequence = 5. Write the formula for the 64-bit ID.</p>
+<p><strong>Solution.</strong> <code>id = (1_000_000_000 &lt;&lt; 22) | (3 &lt;&lt; 17) | (17 &lt;&lt; 12) | 5</code>
+= 4,194,304,000,000,000 + 393,216 + 69,632 + 5 = <strong>4,194,304,000,462,853</strong>.
+(Verify with the widget by setting the timestamp to epoch + 1,000,000,000.)</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Lifetime</summary>
+<p>You redesign the layout as 1 sign + 39 timestamp bits (units of 10 ms) + 16 worker bits + 8 sequence bits
+(this is roughly Sonyflake). How long does it last, and what's the max rate per worker?</p>
+<p><strong>Solution.</strong> 2³⁹ × 10 ms ≈ 5.5 × 10¹² ms ≈ <strong>174 years</strong>. Rate: 2⁸ = 256 IDs per 10 ms = <strong>25,600 IDs/s per worker</strong>,
+with up to 65,536 workers.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Choose an approach</summary>
+<p>For each, pick an ID scheme: (a) order IDs in a single-region monolith with Postgres; (b) chat message IDs for a
+global chat app; &copy; public share links that shouldn't reveal volume.</p>
+<p><strong>Solution.</strong> (a) A Postgres <code>BIGSERIAL</code>/sequence is fine — one primary, no distribution needed. (b) <strong>Snowflake</strong> —
+64-bit, time-ordered, generated locally on each chat server (Chapter 12 uses this). &copy; <strong>Random IDs</strong> (UUIDv4 or a random
+base-62 string) or an encrypted Snowflake — avoid exposing creation time and counts.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can explain why DB auto-increment fails in a distributed system.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can compare multi-master step, UUID, ticket server, range allocation and Snowflake on size, ordering, coordination, SPOF.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can draw Snowflake's 1/41/5/5/12 layout and explain each section.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can compute the 69-year lifetime and 4,096 IDs/ms/machine limit, and why a custom epoch matters.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can implement Snowflake in Java including the clock-going-backwards case.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I know UUIDv7/ULID and when to prefer them.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../../case-studies/08-url-shortener/">Next: 08 · URL Shortener <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../06-key-value-store/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 06 · Key-Value Store">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                06 · Key-Value Store
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../case-studies/08-url-shortener/" class="md-footer__link md-footer__link--next" aria-label="Next: 08 · URL Shortener">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                08 · URL Shortener
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

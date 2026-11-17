@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/start-here/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/start-here/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/start-here/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/building-blocks/04-rate-limiter/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/04-rate-limiter/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/04-rate-limiter/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/building-blocks/05-consistent-hashing/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/05-consistent-hashing/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/05-consistent-hashing/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/building-blocks/06-key-value-store/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/06-key-value-store/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/06-key-value-store/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/building-blocks/07-unique-id-generator/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/07-unique-id-generator/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/07-unique-id-generator/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/08-url-shortener/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/08-url-shortener/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/08-url-shortener/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/09-web-crawler/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/09-web-crawler/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/09-web-crawler/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/10-notification-system/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/10-notification-system/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/10-notification-system/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/11-news-feed/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/11-news-feed/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/11-news-feed/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/12-chat-system/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/12-chat-system/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/12-chat-system/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/13-search-autocomplete/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/13-search-autocomplete/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/13-search-autocomplete/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/14-youtube/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/14-youtube/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/14-youtube/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/case-studies/15-google-drive/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/15-google-drive/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/15-google-drive/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/foundations/01-scale-from-zero-to-millions/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/foundations/01-scale-from-zero-to-millions/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/foundations/01-scale-from-zero-to-millions/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/foundations/02-back-of-the-envelope/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/foundations/02-back-of-the-envelope/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/foundations/02-back-of-the-envelope/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/foundations/03-interview-framework/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/foundations/03-interview-framework/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/foundations/03-interview-framework/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/revise/16-cheat-sheet/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/revise/16-cheat-sheet/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/revise/16-cheat-sheet/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/revise/17-glossary/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/revise/17-glossary/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/revise/17-glossary/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/revise/18-learning-continues/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/revise/18-learning-continues/"/>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/revise/18-learning-continues/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/start-here/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/start-here/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/start-here/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/building-blocks/04-rate-limiter/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/04-rate-limiter/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/04-rate-limiter/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/building-blocks/05-consistent-hashing/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/05-consistent-hashing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/05-consistent-hashing/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/building-blocks/06-key-value-store/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/06-key-value-store/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/06-key-value-store/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/building-blocks/07-unique-id-generator/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/building-blocks/07-unique-id-generator/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/building-blocks/07-unique-id-generator/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/08-url-shortener/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/08-url-shortener/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/08-url-shortener/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/09-web-crawler/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/09-web-crawler/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/09-web-crawler/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/10-notification-system/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/10-notification-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/10-notification-system/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/11-news-feed/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/11-news-feed/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/11-news-feed/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/12-chat-system/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/12-chat-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/12-chat-system/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/13-search-autocomplete/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/13-search-autocomplete/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/13-search-autocomplete/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/14-youtube/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/14-youtube/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/14-youtube/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/case-studies/15-google-drive/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/case-studies/15-google-drive/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/case-studies/15-google-drive/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/foundations/01-scale-from-zero-to-millions/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/foundations/01-scale-from-zero-to-millions/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/foundations/01-scale-from-zero-to-millions/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/foundations/02-back-of-the-envelope/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/foundations/02-back-of-the-envelope/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/foundations/02-back-of-the-envelope/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/foundations/03-interview-framework/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/foundations/03-interview-framework/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/foundations/03-interview-framework/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/revise/16-cheat-sheet/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/revise/16-cheat-sheet/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/revise/16-cheat-sheet/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/revise/17-glossary/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/revise/17-glossary/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/revise/17-glossary/"/>
+    </url>
+    <url>
+        <loc>https://sysdes.jayantkapoor.com/hi/revise/18-learning-continues/</loc>
+        <lastmod>2026-11-17</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="hi" href="https://sysdes.jayantkapoor.com/hi/revise/18-learning-continues/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://sysdes.jayantkapoor.com/revise/18-learning-continues/"/>
+    </url>
+</urlset>

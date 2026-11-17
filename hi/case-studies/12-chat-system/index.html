@@ -1,0 +1,2347 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="WhatsApp/Messenger jaisa chat design — polling vs long polling vs WebSockets, stateful chat servers, service discovery, message storage aur IDs, 1:1 aur group flows, multi-device sync, online presence, receipts aur failure handling.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/hi/case-studies/12-chat-system/">
+      
+      
+        <link rel="prev" href="../11-news-feed/">
+      
+      
+        <link rel="next" href="../13-search-autocomplete/">
+      
+      
+        
+          <link rel="alternate" href="../../../case-studies/12-chat-system/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>12 · Chat System - SysDes — System Design, Gehraai se</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#12-chat-system-design-karo" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-header__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Gehraai se
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              12 · Chat System
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../case-studies/12-chat-system/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Yahan se shuru karo
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations (Neev)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../building-blocks/04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revision & Aage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-nav__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Gehraai se
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Yahan se shuru karo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations (Neev)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations (Neev)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-telephone-exchange" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: telephone exchange
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-receiver-ko-message-push-kaise-karega" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server receiver ko message push kaise karega?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-kaunsa-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage: kaunsa database?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#service-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-message-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1:1 message flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-device-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-device sync
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chhota-group-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chhota group chat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#online-presence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Online presence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#receipts-sent-delivered-read" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Receipts: sent ✓, delivered ✓✓, read 🔵
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failure-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-encryption-mention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-end encryption (mention)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revision & Aage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revision & Aage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary (Shabdkosh)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · Seekhna Jaari Hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-telephone-exchange" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: telephone exchange
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-receiver-ko-message-push-kaise-karega" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server receiver ko message push kaise karega?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-kaunsa-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage: kaunsa database?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#service-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-message-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1:1 message flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-device-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-device sync
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chhota-group-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chhota group chat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#online-presence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Online presence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#receipts-sent-delivered-read" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Receipts: sent ✓, delivered ✓✓, read 🔵
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failure-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-encryption-mention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-end encryption (mention)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/case-studies/12-chat-system.hi.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="12-chat-system-design-karo">12 · Chat System Design karo<a class="headerlink" href="#12-chat-system-design-karo" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 50 min read</span>
+<span class="hot">🔥 Top-5 sabse zyada poochha jaane waala; real-time + storage + ordering test karta hai</span>
+<span>Book: Chapter 12</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>Clients ko <strong>server-initiated</strong> delivery chahiye → polling ya long polling ki jagah <strong>WebSockets</strong> (bi-directional, persistent).</li>
+<li>Services baanto: <strong>stateless</strong> (login, profiles, groups — load balancer ke peeche), <strong>stateful chat servers</strong> (har user ka WebSocket rakhte hain), aur <strong>third-party push</strong> (offline users ke liye APNs/FCM).</li>
+<li><strong>Service discovery</strong> (jaise ZooKeeper) login pe user ko ek healthy, paas waala chat server assign karti hai.</li>
+<li>Messages <strong>wide-column / key-value store</strong> (Cassandra, HBase) mein: bahut zyada write volume, reads "chat ke latest N messages" jaise. Key = <code>(chat_id, message_id)</code>, <strong>time-sortable IDs</strong> ke saath.</li>
+<li>Har device ek <code>last_seen_message_id</code> rakhta hai → <strong>multi-device sync</strong> matlab "X ke baad ka sab do". Presence <strong>heartbeats</strong> + dosto ko pub/sub se.</li>
+</ul>
+</div>
+<h2 id="intuition-telephone-exchange">Intuition: telephone exchange<a class="headerlink" href="#intuition-telephone-exchange" title="Permanent link">&para;</a></h2>
+<p>Purane telephone exchanges poori call ke liye do phones ke beech ek <strong>live line</strong> khuli rakhte the. Kisi ko baar-baar "kuch naya?" poochna nahi
+padta tha — jaise hi koi bolta, awaaz dono taraf behti. Agar phone kahin aur off the hook hota, operator message le leta aur baad mein ghanti bajata.</p>
+<p>Chat server wahi exchange hai: har phone apne chat server se ek live line (WebSocket) rakhta hai; messages turant dono taraf behte hain; agar tum
+offline ho, toh <strong>push notification</strong> operator ka call-back hai, aur message tumhare reconnect hone tak storage mein intezaar karta hai.</p>
+<hr />
+<h2 id="step-1-scope">Step 1 · Scope<a class="headerlink" href="#step-1-scope" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Clarifying baatcheet</p>
+<p><strong>Tum:</strong> 1:1, groups, ya dono? — <strong>Interviewer:</strong> Dono. Groups mein 256 members tak.
+<strong>Tum:</strong> Mobile, web ya dono? — <strong>I:</strong> Dono; ek user ek saath kai devices pe logged in ho sakta hai.
+<strong>Tum:</strong> Scale? — <strong>I:</strong> 80M DAU.
+<strong>Tum:</strong> Message types? — <strong>I:</strong> Abhi sirf text (64 KB tak). Media baad mein.
+<strong>Tum:</strong> Messaging ke alawa features? — <strong>I:</strong> Online/last-seen indicator, delivery aur read receipts, offline hone pe push notifications.
+<strong>Tum:</strong> History kitne time? — <strong>I:</strong> Chat history 2 saal rakho.
+<strong>Tum:</strong> End-to-end encryption? — <strong>I:</strong> Design ke scope mein nahi, par mention karo.</p>
+</div>
+<h3 id="estimates">Estimates<a class="headerlink" href="#estimates" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DAU</td>
+<td>80M; peak pe ~25% online → <strong>20M concurrent WebSockets</strong></td>
+</tr>
+<tr>
+<td>Messages</td>
+<td>80M × 40/din = 3.2B/din → <strong>~37K/s</strong>, peak ~100K/s</td>
+</tr>
+<tr>
+<td>Group fan-out</td>
+<td>average group 20 members → group messages deliveries ko ~20× badhate hain</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>3.2B × ~150 B ≈ <strong>480 GB/din</strong> → 2 saal ≈ <strong>350 TB</strong> (+ replicas)</td>
+</tr>
+<tr>
+<td>Chat servers</td>
+<td>ek tuned server pe ~500K connections → sirf connections ke liye <strong>~40 servers</strong> (headroom ke liye 2× chalao)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="step-2-high-level-design">Step 2 · High-level design<a class="headerlink" href="#step-2-high-level-design" title="Permanent link">&para;</a></h2>
+<h3 id="server-receiver-ko-message-push-kaise-karega">Server receiver ko message push kaise karega?<a class="headerlink" href="#server-receiver-ko-message-push-kaise-karega" title="Permanent link">&para;</a></h3>
+<p>HTTP client-initiated hai. <strong>Sender</strong> seedha <code>POST</code> kar sakta hai (ya apne socket pe bhej sakta hai). Mushkil hissa hai <strong>receiver</strong>: server ko
+unhe push karna hai. Teen options:</p>
+<h4 id="option-1-polling">Option 1 · Polling<a class="headerlink" href="#option-1-polling" title="Permanent link">&para;</a></h4>
+<p><pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant S as Server
+    loop har kuch second
+        C-&gt;&gt;S: koi naya message?
+        S--&gt;&gt;C: nahi (zyada tar)
+    end</code></pre>
+Simple, par barbaadi: zyada tar requests khaali lautti hain, aur latency = polling interval.</p>
+<h4 id="option-2-long-polling">Option 2 · Long polling<a class="headerlink" href="#option-2-long-polling" title="Permanent link">&para;</a></h4>
+<p><pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C-&gt;&gt;S: koi naya message? (khula rakho)
+    Note over S: message aane tak ya ~30 s timeout tak wait
+    S--&gt;&gt;C: message
+    C-&gt;&gt;S: agla long poll</code></pre>
+Latency better, par: jo server connection pakde hai, zaroori nahi wahi sender ka message receive kare (stateless LB routing); server ko pata nahi
+chalta client disconnect hua ya nahi; inactive users bhi har timeout pe reconnect karte hain.</p>
+<h4 id="option-3-websocket">Option 3 · WebSocket ✅<a class="headerlink" href="#option-3-websocket" title="Permanent link">&para;</a></h4>
+<p><pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant S as Chat server
+    C-&gt;&gt;S: HTTP GET Upgrade: websocket
+    S--&gt;&gt;C: 101 Switching Protocols
+    Note over C,S: persistent, bi-directional connection
+    S--&gt;&gt;C: message (server-initiated)
+    C-&gt;&gt;S: message</code></pre>
+HTTP se shuru hota hai aur <strong>upgrade</strong> hota hai; ports 80/443 pe chalta hai toh firewalls paar kar leta hai; full-duplex. <strong>Bhejne aur paane
+dono</strong> ke liye isi ko use karo — ek connection, simple client.</p>
+<h3 id="service-architecture">Service architecture<a class="headerlink" href="#service-architecture" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TB
+    U[Users] --&gt;|"HTTP: login, profile, groups"| LB{{Load balancer}}
+    LB --&gt; API["Stateless API services&lt;br/&gt;auth · user profile · groups · service discovery"]
+    U &lt;--&gt;|"WebSocket"| CS["Stateful chat servers"]
+    CS --&gt; PS[Presence servers]
+    CS --&gt; IDG[Message ID generator]
+    CS --&gt; Q[[Message sync queues]]
+    Q --&gt; KV[(Chat KV store)]
+    CS --&gt; PN["Push notification service&lt;br/&gt;→ APNs / FCM"]
+    API --&gt; SD[(ZooKeeper&lt;br/&gt;chat server registry)]
+    API --&gt; DB[(User / group DB + cache)]</code></pre>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Components</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stateless</strong></td>
+<td>Login/auth, user profiles, group management, <strong>service discovery</strong></td>
+<td>LB ke peeche classic request/response; freely scale</td>
+</tr>
+<tr>
+<td><strong>Stateful</strong></td>
+<td><strong>Chat servers</strong></td>
+<td>Har client ek chat server se persistent connection rakhta hai; user tabhi server badalta hai jab woh fail ho</td>
+</tr>
+<tr>
+<td><strong>Third-party</strong></td>
+<td><strong>Push notifications</strong> (APNs/FCM)</td>
+<td>Offline users ko naye messages ka pata aise chalta hai (Chapter 10)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Scalability:</strong> 20M connections pakadne waala ek giant server sapnon jaisa SPOF hai; hum connections ko kai chat servers mein shard karte hain,
+aur baaki sab stateless rakhte hain.</p>
+<h3 id="storage-kaunsa-database">Storage: kaunsa database?<a class="headerlink" href="#storage-kaunsa-database" title="Permanent link">&para;</a></h3>
+<p>Do tarah ka data:</p>
+<ol>
+<li><strong>Generic data</strong> — users, profiles, settings, friend lists, groups. Replicas aur sharding ke saath relational DB theek hai.</li>
+<li><strong>Chat history</strong> — unique hissa. Iski properties:<ul>
+<li><strong>Bahut zyada write volume</strong> (WhatsApp/Messenger scale pe roz das-hazaaron crore messages).</li>
+<li>Reads zyada tar <strong>recent</strong>: "chat kholo → latest 50 dikhao", phir kabhi-kabhi peeche scroll.</li>
+<li>Access <strong>chat aur time se</strong>, content se kam hi (search alag index hai).</li>
+<li>1:1 chats ke liye read:write ratio lagbhag 1:1.</li>
+</ul>
+</li>
+</ol>
+<p>→ Chat se partitioned <strong>wide-column / key-value store</strong> (Cassandra, HBase, ScyllaDB). Aasaan horizontal scaling, bahut low latency, aur chat ke
+liye battle-tested (Facebook Messenger ne historically HBase use kiya; Discord Cassandra/ScyllaDB use karta hai).</p>
+<h3 id="data-model">Data model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>-- 1:1 messages (pair se partition, taaki ek conversation saath rahe)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>messages_1to1
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  chat_id      (partition key)  = min(user_a, user_b) + ":" + max(user_a, user_b)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  message_id   (clustering key, DESC)   -- time-sortable
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  from_user_id
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  content
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  created_at
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>-- group messages
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>messages_group
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  group_id     (partition key)
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  message_id   (clustering key, DESC)
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  from_user_id
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  content
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  created_at
+</span></code></pre></div>
+<p><strong>Message IDs</strong> <strong>unique aur time se sortable</strong> honi chahiye — chat mein ordering inhi pe depend karti hai. Sirf <code>created_at</code> kaafi nahi (same ms
+mein do messages). Options:</p>
+<ul>
+<li>Global <strong>Snowflake</strong> ID (Chapter 7) — aasaan, globally roughly ordered.</li>
+<li><strong>Per-chat sequence</strong> (local ID generator): IDs ko sirf <em>ek chat ke andar</em> ordered hona hai, jo guarantee karna kahin aasaan hai (jaise har chat partition ka counter).</li>
+</ul>
+<hr />
+<h2 id="step-3-deep-dive">Step 3 · Deep dive<a class="headerlink" href="#step-3-deep-dive" title="Permanent link">&para;</a></h2>
+<h3 id="service-discovery">Service discovery<a class="headerlink" href="#service-discovery" title="Permanent link">&para;</a></h3>
+<p>User login karta hai toh kis chat server se connect kare? <strong>ZooKeeper</strong> (ya etcd/Consul) live chat servers ki registry unke load aur location ke
+saath rakhta hai; API best waala chunti hai (paas ka, kam load waala) aur uska address return karti hai.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant A as User A
+    participant LB as Load balancer
+    participant API as API servers
+    participant ZK as Service discovery
+    participant CS2 as Chat server 2
+    A-&gt;&gt;LB: login
+    LB-&gt;&gt;API: authenticate
+    API-&gt;&gt;ZK: A ke liye best chat server?
+    ZK--&gt;&gt;API: chat-2.ap-south (kam load)
+    API--&gt;&gt;A: token + ws://chat-2...
+    A-&gt;&gt;CS2: WebSocket kholo</code></pre>
+<p>Ek <strong>session registry</strong> (Redis: <code>user_id → {chat_server, device}</code>) record karti hai ki har user abhi kahan connected hai, taaki doosre servers
+messages unhe route kar sakein.</p>
+<h3 id="11-message-flow">1:1 message flow<a class="headerlink" href="#11-message-flow" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>sequenceDiagram
+    participant A as User A
+    participant CS1 as Chat server 1
+    participant ID as ID generator
+    participant Q as Sync queue (B)
+    participant KV as KV store
+    participant CS2 as Chat server 2
+    participant B as User B
+    participant PN as Push service
+    A-&gt;&gt;CS1: B ko bhejo Kal milte hain? (client_msg_id c42)
+    CS1-&gt;&gt;ID: agla message_id
+    CS1-&gt;&gt;Q: B ke liye enqueue
+    CS1-&gt;&gt;KV: message persist
+    CS1--&gt;&gt;A: ack (c42 → message_id)
+    alt B online hai
+        Q-&gt;&gt;CS2: deliver
+        CS2-&gt;&gt;B: WebSocket pe push
+        B--&gt;&gt;CS2: delivered receipt
+    else B offline hai
+        Q-&gt;&gt;PN: push notification bhejo
+    end</code></pre>
+<ol>
+<li>A apne WebSocket pe chat server 1 ko message bhejta hai, retries pe dedup ke liye ek <strong>client-generated ID</strong> (<code>c42</code>) ke saath.</li>
+<li>Chat server 1 <code>message_id</code> leta hai aur message <strong>persist</strong> karta hai (KV store) — source of truth.</li>
+<li>Message ko B ki <strong>message sync queue</strong> pe daalta hai (socho: B ka inbox).</li>
+<li>A ko <strong>ack</strong> karta hai (A ke UI mein ek tick ✓).</li>
+<li>B online hai (session registry bolti hai chat server 2) toh message B ke WebSocket pe deliver hota hai; B ka app ack karta hai → <strong>delivered</strong> (✓✓).</li>
+<li>B offline hai toh <strong>push notification</strong> service APNs/FCM alert bhejti hai; message storage mein intezaar karta hai.</li>
+</ol>
+<h3 id="multi-device-sync">Multi-device sync<a class="headerlink" href="#multi-device-sync" title="Permanent link">&para;</a></h3>
+<p>User B ke paas phone aur laptop hai. Har device apna <strong><code>cur_max_message_id</code></strong> rakhta hai — har chat ke liye usne dekha latest message ID. Ek naya
+message device ke liye "naya" hai agar:</p>
+<ul>
+<li>recipient logged-in user hai, aur</li>
+<li><code>message_id &gt; us device ka cur_max_message_id</code>.</li>
+</ul>
+<p>Reconnect pe device poochta hai "meri chats ka <code>cur_max_message_id</code> ke baad ka sab kuch", KV store se laata hai, aur apna pointer update karta hai.
+Har device ka alag pointer hai, toh har ek apne aap catch up karta hai.</p>
+<h3 id="chhota-group-chat">Chhota group chat<a class="headerlink" href="#chhota-group-chat" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    A[User A] --&gt;|group G ko message| CS[Chat server]
+    CS --&gt; QB[["sync queue: B"]] &amp; QC[["sync queue: C"]] &amp; QD[["sync queue: D"]]
+    QB --&gt; B[User B]
+    QC --&gt; C[User C]
+    QD --&gt; D[User D]</code></pre>
+<p>Chhote groups (≤ kuch sau) ke liye, <strong>message (ya uski ID) ko har member ki sync queue / inbox mein copy karo</strong>. Har recipient ko phir sab kuch ke
+liye sirf ek inbox dekhna hai — simple aur tez. Keemat hai har message ki N copies, jo 256 ke groups ke liye theek hai par 100K members waale
+channels ke liye <strong>nahi</strong> — wahan readers group ki apni message stream se <strong>pull</strong> karte hain (Chapter 11 jaisa hi push-vs-pull trade-off).</p>
+<p>Receiving side pe ek user ke inbox mein kai senders aur groups ke messages order mein merge hokar aate hain.</p>
+<h3 id="online-presence">Online presence<a class="headerlink" href="#online-presence" title="Permanent link">&para;</a></h3>
+<p>Dost online ho toh hara dot, warna "last seen".</p>
+<ul>
+<li><strong>Login:</strong> WebSocket bante hi presence server KV store mein <code>status = online, last_active_at = now</code> set karta hai.</li>
+<li><strong>Logout:</strong> <code>status = offline</code> set.</li>
+<li><strong>Disconnects</strong> gande hain: mobile networks lagatar toot-te hain (lift, tunnel). Har jhatke pe offline/online flip karna noisy aur mehenga hai. <strong>Heartbeat</strong> use karo: client har ~5 s bhejta hai; ~30 s tak koi na aaye toh user offline mark karo.</li>
+</ul>
+<pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant P as Presence server
+    C-&gt;&gt;P: heartbeat
+    Note over P: online
+    C-&gt;&gt;P: heartbeat (5 s baad)
+    Note over C: network gaya (lift)
+    C-&gt;&gt;P: heartbeat (30 s ke andar reconnect)
+    Note over P: ab bhi online — koi flap nahi
+    Note over C: app band
+    Note over P: 30 s tak heartbeat nahi → offline, last_seen = t</code></pre>
+<p><strong>Status changes ka fan-out:</strong> <strong>pub/sub</strong> use karo — har user ka ek channel; dost usse subscribe karte hain (A→B, A→C…). A offline hota hai toh
+presence server ek baar publish karta hai aur subscribers ke chat servers update push karte hain. Chhoti friend lists/groups ke liye chalta hai;
+bade groups (jaise 50K members) ke liye <strong>presence push mat karo</strong> — sirf tab laao jab user group ya kisi member ki profile khole.</p>
+<h3 id="receipts-sent-delivered-read">Receipts: sent ✓, delivered ✓✓, read 🔵<a class="headerlink" href="#receipts-sent-delivered-read" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Sent</strong>: server ne message persist kiya (sender ko ack).</li>
+<li><strong>Delivered</strong>: recipient ke device ne receive ack kiya → server status update karke sender ko batata hai.</li>
+<li><strong>Read</strong>: recipient ne chat kholi → device bhejta hai "message_id X tak padh liya" (ek event kai messages cover karta hai).
+Groups mein har member ka track karo aur aggregate karo ("12 ne padha").</li>
+</ul>
+<h3 id="failure-handling">Failure handling<a class="headerlink" href="#failure-handling" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Chat server mar gaya:</strong> clients band WebSocket notice karte hain, service discovery se naya server maangte hain, reconnect karte hain, aur <code>cur_max_message_id</code> se <strong>resync</strong> — kuch nahi khota kyunki messages ack se pehle persist hue the.</li>
+<li><strong>Message retry:</strong> sender ko ack na mile toh same <code>client_msg_id</code> ke saath dobara bhejta hai; server dedup karta hai → duplicates nahi.</li>
+<li><strong>Ordering:</strong> chat ke andar <code>message_id</code> se order; client late aane waale messages ko sahi jagah daal deta hai.</li>
+<li><strong>Queue backlog / slow consumers:</strong> sync queues durable hain; recipients reconnect pe catch up karte hain.</li>
+</ul>
+<h3 id="end-to-end-encryption-mention">End-to-end encryption (mention)<a class="headerlink" href="#end-to-end-encryption-mention" title="Permanent link">&para;</a></h3>
+<p>E2EE (Signal protocol, WhatsApp use karta hai) ke saath messages sender ke device pe un keys se encrypt hote hain jo sirf recipient devices ke paas
+hain. Server <strong>ciphertext</strong> store aur forward karta hai — content padh, search ya moderate nahi kar sakta, aur multi-device sync ke liye per-device
+keys chahiye. Upar ka architecture ab bhi chalta hai; bas payloads opaque ho jaate hain.</p>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>WebSockets ki jagah long polling kyun nahi?</summary>
+<p>Long polling chalta hai par hamare scale pe kamiyan hain: connections lagatar dobara bante hain (har message aur har timeout pe), jo server
+client ka poll pakde hai woh shayad sender ka message receive karne waala na ho (extra routing chahiye), aur disconnects detect karna mushkil.
+WebSockets har device ka ek persistent full-duplex connection dete hain — 20M concurrent users ke liye kam latency aur overhead.</p>
+</details>
+<details class="question">
+<summary>Chat server 1 se message us user tak kaise route karoge jo chat server 7 pe connected hai?</summary>
+<p><strong>Session registry</strong> (<code>user_id → chat server(s)</code>) mein recipient dekho, phir internal message bus se bhejo — jaise har chat server apni queue/topic
+consume kare, ya servers internal RPC se baat karein. Recipient se partitioned Kafka topics, ya har chat server ka Redis pub/sub channel, common choices hain.</p>
+</details>
+<details class="question">
+<summary>Chat mein message order kaise guarantee karoge?</summary>
+<p>Aisi IDs do jo <strong>chat ke andar</strong> strictly badhti hon — jaise chat own karne waale partition ka per-chat sequence number — aur clients usi se sort
+karein. Chats ke across global ordering zaroori nahi. Snowflake IDs globally roughly ordered hain par servers ke across kuch ms ulat sakti hain;
+per-chat sequences isse bachate hain.</p>
+</details>
+<details class="question">
+<summary>Ek group mein 1,00,000 members hain. Kya badlega?</summary>
+<p>Har member ke inbox mein message copy karna band karo (har message pe 100K writes). Message group ki stream mein ek baar store karo; members group
+kholne pe recent messages <strong>pull</strong> karte hain, aur poore message ki jagah halka notification/badge milta hai. Presence ya typing indicators fan out
+mat karo; kaun post kar sakta hai use rate-limit karo (announcement-style channels).</p>
+</details>
+<details class="question">
+<summary>Message search kaise jodoge?</summary>
+<p>KV store "chat ke latest messages" ke liye optimised hai, text search ke liye nahi. Messages ko (asynchronously) user se partitioned search index
+(Elasticsearch/OpenSearch) mein stream karo, aur har user ke liye query karo. E2EE ke saath server-side search impossible hai — search device pe
+uski local copy pe chalta hai.</p>
+</details>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Chat-server fleet ka size</summary>
+<p>Peak pe 35M concurrent connections. Ek chat server 60% CPU pe 400K connections sambhalta hai. 3 regions mein traffic 50/30/20 bata hai aur har region
+mein N+2 redundancy chahiye. Har region mein kitne servers?</p>
+<p><strong>Solution.</strong> Region connections: 17.5M, 10.5M, 7M → ÷ 400K = 44, 27, 18 servers → har ek +2 → <strong>46, 29, 20</strong> (total 95). Ek region ke doosron pe
+fail over hone ki capacity bhi plan karo.</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Multi-device catch-up</summary>
+<p>Chat X ke liye B ke phone ka <code>cur_max_message_id = 9100</code> aur laptop ka <code>= 9180</code>. Messages 9101–9200 hain. Phone reconnect karta hai. Kya fetch hoga,
+aur laptop ka kya?</p>
+<p><strong>Solution.</strong> Phone chat X mein <code>message_id &gt; 9100</code> query karta hai → 100 messages, pointer 9200 pe update. Laptop pe tab tak asar nahi jab tak woh
+reconnect na kare/live messages na paaye; woh <code>&gt; 9180</code> laayega → 20 messages. Read receipts per-user hain, toh phone "9200 tak read" mark kare toh
+laptop ka UI sync event se unread badges saaf kar sakta hai.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Presence traffic</summary>
+<p>20M online users har 5 s heartbeat bhejte hain. Heartbeat QPS kya hai? Kaise kam karoge?</p>
+<p><strong>Solution.</strong> 20M / 5 = <strong>4M heartbeats/s</strong> — kaafi zyada. Kam karne ke tareeke: heartbeats existing WebSocket pe bhejo (naye connections nahi), chat
+server kisi bhi message ko heartbeat maane, interval 15–30 s aur timeout 60–90 s karo, aur presence store sirf state badalne pe (online ↔ offline)
+update karo, har heartbeat pe nahi.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Polling, long polling aur WebSockets compare karke WebSockets justify kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Stateless, stateful aur third-party services alag kar sakta hoon aur service discovery samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Messages ke liye wide-column/KV store justify kar sakta hoon aur 1:1 aur group data model design kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Pata hai message IDs time-sortable kyun honi chahiye aur unhe banane ke do tareeke.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 1:1 delivery (online/offline), multi-device sync, aur small-group fan-out samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Heartbeats aur pub/sub se presence, receipts, aur failure recovery design kar sakta hoon.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../13-search-autocomplete/">Aage: 13 · Search Autocomplete <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../11-news-feed/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 11 · News Feed">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                11 · News Feed
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../13-search-autocomplete/" class="md-footer__link md-footer__link--next" aria-label="Next: 13 · Search Autocomplete">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                13 · Search Autocomplete
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

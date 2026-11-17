@@ -1,0 +1,2991 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Ek server se millions users tak system kaise badhta hai — load balancer, replication, cache, CDN, stateless tier, multiple data centers, queues aur sharding.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/hi/foundations/01-scale-from-zero-to-millions/">
+      
+      
+        <link rel="prev" href="../../start-here/">
+      
+      
+        <link rel="next" href="../02-back-of-the-envelope/">
+      
+      
+        
+          <link rel="alternate" href="../../../foundations/01-scale-from-zero-to-millions/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>01 · Zero se Millions tak Scale - SysDes — System Design, Gehraai se</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#01-zero-se-millions-users-tak-scale" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-header__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Gehraai se
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              01 · Zero se Millions tak Scale
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../foundations/01-scale-from-zero-to-millions/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Yahan se shuru karo
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations (Neev)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../building-blocks/04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../case-studies/08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revision & Aage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-nav__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Gehraai se
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Yahan se shuru karo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations (Neev)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations (Neev)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-ek-dhaba-jo-chain-ban-jaata-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: ek dhaba jo chain ban jaata hai
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-0-ek-single-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 0 · Ek single server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-1-database-alag-karo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 1 · Database alag karo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 1 · Database alag karo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kaunsa-database-sql-vs-nosql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kaunsa database? SQL vs NoSQL
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-2-vertical-vs-horizontal-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 2 · Vertical vs horizontal scaling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-3-load-balancer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 3 · Load balancer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 3 · Load balancer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lb-server-kaise-chunta-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB server kaise chunta hai?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#l4-vs-l7-load-balancing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L4 vs L7 load balancing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-4-database-replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 4 · Database replication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 4 · Database replication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thoda-gehraai-mein-sync-vs-async-replication-aur-lag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thoda gehraai mein: sync vs async replication aur lag
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-5-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5 · Cache
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 5 · Cache">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caching-strategies-poora-menu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caching strategies — poora menu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cache-lagane-se-pehle-kya-sochna-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache lagane se pehle kya sochna hai
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-6-content-delivery-network-cdn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 6 · Content Delivery Network (CDN)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-7-stateless-web-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 7 · Stateless web tier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-8-multiple-data-centers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 8 · Multiple data centers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-9-message-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 9 · Message queue
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 9 · Message queue">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thoda-gehraai-mein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thoda gehraai mein
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-10-logging-metrics-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 10 · Logging, metrics, automation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-11-database-scale-karna-sharding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 11 · Database scale karna: sharding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 11 · Database scale karna: sharding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shard-key-chunna-sabse-important-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shard key chunna (sabse important decision)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sharding-jo-nayi-problems-laati-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sharding jo nayi problems laati hai
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trade-offs-ek-nazar-mein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trade-offs ek nazar mein
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-mistakes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common mistakes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revision & Aage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revision & Aage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary (Shabdkosh)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · Seekhna Jaari Hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-ek-dhaba-jo-chain-ban-jaata-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: ek dhaba jo chain ban jaata hai
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-0-ek-single-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 0 · Ek single server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-1-database-alag-karo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 1 · Database alag karo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 1 · Database alag karo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kaunsa-database-sql-vs-nosql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kaunsa database? SQL vs NoSQL
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-2-vertical-vs-horizontal-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 2 · Vertical vs horizontal scaling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-3-load-balancer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 3 · Load balancer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 3 · Load balancer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lb-server-kaise-chunta-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB server kaise chunta hai?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#l4-vs-l7-load-balancing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L4 vs L7 load balancing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-4-database-replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 4 · Database replication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 4 · Database replication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thoda-gehraai-mein-sync-vs-async-replication-aur-lag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thoda gehraai mein: sync vs async replication aur lag
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-5-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 5 · Cache
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 5 · Cache">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caching-strategies-poora-menu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caching strategies — poora menu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cache-lagane-se-pehle-kya-sochna-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache lagane se pehle kya sochna hai
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-6-content-delivery-network-cdn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 6 · Content Delivery Network (CDN)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-7-stateless-web-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 7 · Stateless web tier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-8-multiple-data-centers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 8 · Multiple data centers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-9-message-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 9 · Message queue
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 9 · Message queue">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thoda-gehraai-mein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thoda gehraai mein
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-10-logging-metrics-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 10 · Logging, metrics, automation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stage-11-database-scale-karna-sharding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stage 11 · Database scale karna: sharding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stage 11 · Database scale karna: sharding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shard-key-chunna-sabse-important-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shard key chunna (sabse important decision)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sharding-jo-nayi-problems-laati-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sharding jo nayi problems laati hai
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trade-offs-ek-nazar-mein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trade-offs ek nazar mein
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-mistakes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common mistakes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/foundations/01-scale-from-zero-to-millions.hi.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="01-zero-se-millions-users-tak-scale">01 · Zero se Millions Users tak Scale<a class="headerlink" href="#01-zero-se-millions-users-tak-scale" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 45 min read</span>
+<span class="hot">🔥 Baaki har chapter ki neev</span>
+<span>Book: Chapter 1</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>Shuruaat <strong>ek server</strong> se karo, phir jo hissa bottleneck bane usse alag karte jao: database → web tier → cache → static files → sessions → data centers → async kaam → phir se database.</li>
+<li><strong>Scale out karo, up nahi</strong>: <strong>load balancer</strong> ke peeche zyada machines lagao aur web tier ko <strong>stateless</strong> rakho taaki koi bhi server koi bhi request handle kar sake.</li>
+<li>Database ko <strong>replicate</strong> karo (writes ke liye ek leader, reads ke liye kai followers), uske aage <strong>cache</strong> lagao, aur static files <strong>CDN</strong> pe daalo.</li>
+<li>Slow kaam ko <strong>message queue</strong> se decouple karo, aur availability ke liye <strong>multiple data centers</strong> + geo-routing use karo.</li>
+<li>Jab ek database data sambhal na paaye, toh <strong>shard</strong> karo — shard key chunna sabse bada decision hai, aur hotspots/resharding/joins uski keemat hain.</li>
+</ul>
+</div>
+<h2 id="intuition-ek-dhaba-jo-chain-ban-jaata-hai">Intuition: ek dhaba jo chain ban jaata hai<a class="headerlink" href="#intuition-ek-dhaba-jo-chain-ban-jaata-hai" title="Permanent link">&para;</a></h2>
+<p>Socho highway pe ek dhaba hai jo ek hi banda chalata hai. Wahi order leta hai, wahi khana banata hai, wahi
+serve karta hai, wahi paisa leta hai. Yeh hai <strong>single server</strong>. Lunch rush tak sab theek chalta hai.</p>
+<ul>
+<li>Pehle woh ek <strong>alag cook</strong> rakhta hai, taaki counter waala sirf order le → <em>database ko web server se alag karna</em>.</li>
+<li>Phir <strong>zyada counters</strong> khulte hain, aur darwaze pe ek banda khada hai jo bolta hai "counter 3 pe jao" → <em>load balancer + zyada web servers</em>.</li>
+<li>Cook <strong>recipe book</strong> ek baar likhta hai aur helpers ko copies de deta hai, jo sirf padh sakte hain → <em>database replication</em>.</li>
+<li>Sabse popular dishes <strong>pehle se bana ke garam rakhi jaati hain</strong> → <em>cache</em>.</li>
+<li>Cold drinks main kitchen ki jagah <strong>har colony ke paas stall</strong> se bikti hain → <em>CDN</em>.</li>
+<li>Order slips ek <strong>rail</strong> pe lagti hain aur cooks free hote hi utha lete hain → <em>message queue</em>.</li>
+<li>Aakhir mein <strong>alag-alag shehron mein branches</strong> khulti hain → <em>multiple data centers</em>, aur menu <strong>specialised kitchens</strong> mein bant jaata hai → <em>sharding</em>.</li>
+</ul>
+<p>Is chapter ki har technique bas yahi kahani hai, computers ke saath.</p>
+<hr />
+<h2 id="stage-0-ek-single-server">Stage 0 · Ek single server<a class="headerlink" href="#stage-0-ek-single-server" title="Permanent link">&para;</a></h2>
+<p>Sab kuch — web app, database, cache — ek hi machine pe. Ek request trace karte hain, kyunki aage ka har
+design isi flow ka variation hai.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant U as User (browser / app)
+    participant D as DNS
+    participant S as Web server
+    U-&gt;&gt;D: shop.example.in kahan hai?
+    D--&gt;&gt;U: 203.0.113.42
+    U-&gt;&gt;S: GET /products/42 (HTTP)
+    S-&gt;&gt;S: business logic chalao, DB padho
+    S--&gt;&gt;U: 200 OK + JSON / HTML</code></pre>
+<ol>
+<li>User domain type karta hai. <strong>DNS</strong> (aam taur pe Route 53 ya Cloudflare jaisi paid third-party service) usse IP address mein badalta hai.</li>
+<li>Client us IP pe seedha <strong>HTTP request</strong> bhejta hai.</li>
+<li>Server <strong>HTML</strong> (browser ke liye) ya <strong>JSON</strong> (mobile apps aur SPAs ke liye) wapas bhejta hai.</li>
+</ol>
+<p>Traffic do tarah ke clients se aata hai: <strong>web apps</strong> (Java/Python/Go mein server-side code + browser mein HTML/JS) aur <strong>mobile apps</strong> (HTTP pe baat karte hain, mostly JSON — jaise <code>GET /products/42 → {"id":42,"name":"Kurta","price":899}</code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">Yeh zyada din kyun nahi chalega</p>
+<p>Ek machine = ek <strong>single point of failure (SPOF)</strong>. Woh reboot hui toh product band. Aur CPU, RAM, disk
+web app aur database dono share karte hain, toh dono aapas mein ladte hain.</p>
+</div>
+<hr />
+<h2 id="stage-1-database-alag-karo">Stage 1 · Database alag karo<a class="headerlink" href="#stage-1-database-alag-karo" title="Permanent link">&para;</a></h2>
+<p>Database ko apni alag machine pe le jao. Ab <strong>web tier</strong> (requests handle karta hai) aur <strong>data tier</strong>
+(data store karta hai) <strong>alag-alag scale</strong> ho sakte hain — jaldi hi tumhe 20 web servers chahiye honge, par primary database shayad ek hi.</p>
+<pre class="mermaid"><code>flowchart LR
+    U[Users] --&gt; W[Web server]
+    W --&gt;|read / write| DB[(Database)]</code></pre>
+<h3 id="kaunsa-database-sql-vs-nosql">Kaunsa database? SQL vs NoSQL<a class="headerlink" href="#kaunsa-database-sql-vs-nosql" title="Permanent link">&para;</a></h3>
+<p>Yeh decision har design mein aayega, toh achhe se samajh lete hain.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Relational (SQL)</th>
+<th>Non-relational (NoSQL)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Examples</strong></td>
+<td>MySQL, PostgreSQL, Oracle</td>
+<td>Cassandra, DynamoDB, MongoDB, HBase, Redis, Neo4j</td>
+</tr>
+<tr>
+<td><strong>Data model</strong></td>
+<td>Tables, rows, fixed schema</td>
+<td>Key-value, document, wide-column, graph</td>
+</tr>
+<tr>
+<td><strong>Joins</strong></td>
+<td>Haan, powerful SQL</td>
+<td>Usually nahi (denormalise karte hain)</td>
+</tr>
+<tr>
+<td><strong>Transactions</strong></td>
+<td>Rows/tables ke across full ACID</td>
+<td>Aksar ek key / ek partition tak limited</td>
+</tr>
+<tr>
+<td><strong>Writes scale karna</strong></td>
+<td>Ek primary ke aage mushkil (sharding chahiye)</td>
+<td>Shuru se kai nodes pe partition hone ke liye bane hain</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Paisa, orders, inventory — jahan relations aur integrity rules hon</td>
+<td>Bahut bada volume, simple access patterns, flexible schema, low latency</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default SQL rakho.</strong> Dashakon ki tooling aur correctness guarantees hain. NoSQL tab lo jab inme se kuch sach ho:</p>
+<ul>
+<li>Bahut bade scale pe simple lookups ke liye <strong>bahut low latency</strong> chahiye (session store, feature flags).</li>
+<li>Data <strong>unstructured / semi-structured</strong> hai ya schema baar-baar badalta hai (product catalog jahan har product ke attributes alag hain).</li>
+<li>Tum mostly key se <strong>blobs serialize/deserialize</strong> kar rahe ho (JSON documents).</li>
+<li><strong>Massive data</strong> store karna hai (billions of rows, petabytes) aur joins se zyada write throughput important hai.</li>
+</ul>
+<p>NoSQL ki chaar families, ek-ek line mein:</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Mental model</th>
+<th>Example use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Key-value</strong></td>
+<td>Ek giant distributed <code>HashMap&lt;String, byte[]&gt;</code></td>
+<td>Sessions, carts, caches (Redis, DynamoDB)</td>
+</tr>
+<tr>
+<td><strong>Document</strong></td>
+<td>Key → JSON document jiske andar query kar sakte ho</td>
+<td>User profiles, catalogs (MongoDB)</td>
+</tr>
+<tr>
+<td><strong>Wide-column</strong></td>
+<td>Row key → columns ka sorted map, heavy writes ke liye bana</td>
+<td>Chat messages, time series (Cassandra, HBase)</td>
+</tr>
+<tr>
+<td><strong>Graph</strong></td>
+<td>Nodes + edges, fast traversal</td>
+<td>Social graph, recommendations (Neo4j)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition interview">
+<p class="admonition-title">Interview mein</p>
+<p>"NoSQL kyunki woh scale karta hai" mat bolo. Batao <strong>access pattern</strong> kya hai aur woh store usme kyun fit
+hota hai: <em>"Messages lagatar likhe jaate hain aur (channel, time range) se padhe jaate hain, isliye Cassandra
+jaisa wide-column store — channel_id se partitioned aur message_id se clustered — perfect fit hai."</em></p>
+</div>
+<hr />
+<h2 id="stage-2-vertical-vs-horizontal-scaling">Stage 2 · Vertical vs horizontal scaling<a class="headerlink" href="#stage-2-vertical-vs-horizontal-scaling" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Vertical ("scale up")</th>
+<th>Horizontal ("scale out")</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Kya</strong></td>
+<td>Badi machine: zyada CPU, RAM, tez disk</td>
+<td>Zyada machines jo load baant lein</td>
+</tr>
+<tr>
+<td><strong>Fayde</strong></td>
+<td>Ekdum simple, code change nahi, distributed-systems ki problems nahi</td>
+<td>Practically unlimited, ek machine fail ho toh bhi chalta rahe</td>
+</tr>
+<tr>
+<td><strong>Nuksaan</strong></td>
+<td>Hard ceiling; cost tezi se badhti hai; phir bhi ek SPOF; upgrade mein downtime</td>
+<td>Load balancing, stateless servers, data partitioning chahiye</td>
+</tr>
+<tr>
+<td><strong>Kab</strong></td>
+<td>Traffic kam/moderate ho, ya shuru mein database ke liye</td>
+<td>Bada scale, high availability chahiye</td>
+</tr>
+</tbody>
+</table>
+<p>Vertical scaling "bura" nahi hai — database ke liye aksar pehla sahi step yahi hota hai (ek bada Postgres
+box kaafi door tak le jaata hai). Par <strong>web tier</strong> ke liye jaldi se horizontal scaling chahiye, aur uske liye load balancer.</p>
+<hr />
+<h2 id="stage-3-load-balancer">Stage 3 · Load balancer<a class="headerlink" href="#stage-3-load-balancer" title="Permanent link">&para;</a></h2>
+<p><strong>Load balancer (LB)</strong> web servers ke pool ke aage baithta hai aur requests unme baant-ta hai.</p>
+<pre class="mermaid"><code>flowchart LR
+    U[Users] --&gt;|public IP| LB{{Load balancer}}
+    LB --&gt;|private IP| W1[Web server 1]
+    LB --&gt;|private IP| W2[Web server 2]
+    W1 --&gt; DB[(Database)]
+    W2 --&gt; DB</code></pre>
+<ul>
+<li>Users ko sirf LB ka <strong>public IP</strong> pata hai. Servers <strong>private IPs</strong> pe hain (network ke andar reachable, internet se nahi) — security better.</li>
+<li>Server 1 mar gaya? LB ke <strong>health checks</strong> pakad lete hain aur sab traffic server 2 pe bhej dete hain → <strong>failover</strong>.</li>
+<li>Traffic badha? Pool mein server 3, 4, 5 daal do → LB automatically unhe use karna shuru kar deta hai.</li>
+</ul>
+<h3 id="lb-server-kaise-chunta-hai">LB server kaise chunta hai?<a class="headerlink" href="#lb-server-kaise-chunta-hai" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Kaise</th>
+<th>Kiske liye achha</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Round robin</strong></td>
+<td>1, 2, 3, 1, 2, 3…</td>
+<td>Same servers, similar requests</td>
+</tr>
+<tr>
+<td><strong>Weighted round robin</strong></td>
+<td>Bade servers ko zyada turns</td>
+<td>Mixed hardware</td>
+</tr>
+<tr>
+<td><strong>Least connections</strong></td>
+<td>Jiske paas sabse kam active connections</td>
+<td>Long-lived ya uneven requests (WebSockets, uploads)</td>
+</tr>
+<tr>
+<td><strong>Least response time</strong></td>
+<td>Sabse tez jawab dene waala healthy server</td>
+<td>Latency-sensitive APIs</td>
+</tr>
+<tr>
+<td><strong>IP hash / consistent hashing</strong></td>
+<td><code>hash(client IP ya key) → server</code></td>
+<td>Stickiness, cache locality</td>
+</tr>
+</tbody>
+</table>
+<h3 id="l4-vs-l7-load-balancing">L4 vs L7 load balancing<a class="headerlink" href="#l4-vs-l7-load-balancing" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Layer 4</strong> (transport): sirf IP + port dekh ke route karta hai, HTTP request kabhi nahi padhta. Bahut tez, kisi bhi protocol ke saath chale. <em>Example:</em> AWS NLB.</li>
+<li><strong>Layer 7</strong> (application): HTTP request padhta hai — path, headers, cookies — toh <code>/api/*</code> ko API servers pe aur <code>/static/*</code> ko kahin aur bhej sakta hai, TLS terminate kar sakta hai, auth aur rate limiting kar sakta hai. <em>Example:</em> NGINX, Envoy, AWS ALB.</li>
+</ul>
+<div class="admonition question">
+<p class="admonition-title">\"Toh kya load balancer khud single point of failure nahi hai?\"</p>
+<p>Haan, agar ek hi ho. Asli setups mein LBs <strong>pairs</strong> mein chalte hain (active-passive with floating/virtual IP,
+ya active-active), aur DNS kai LB IPs de sakta hai. Cloud ke managed LBs pehle se availability zones ke across replicated hote hain.</p>
+</div>
+<hr />
+<h2 id="stage-4-database-replication">Stage 4 · Database replication<a class="headerlink" href="#stage-4-database-replication" title="Permanent link">&para;</a></h2>
+<p>Web tier ab failures jhel leta hai. Database nahi. <strong>Replication</strong> data ki copies kai servers pe rakhta hai.</p>
+<p>Classic setup hai <strong>leader–follower</strong> (book purane <em>master–slave</em> words use karti hai):</p>
+<ul>
+<li><strong>Leader</strong> (primary) <strong>saare writes</strong> leta hai — INSERT, UPDATE, DELETE.</li>
+<li><strong>Followers</strong> (replicas) ko har change ki copy milti hai aur woh <strong>reads</strong> serve karte hain.</li>
+<li>Zyada tar apps likhne se kahin zyada padhte hain (aksar 10:1 se 100:1), toh <strong>ek leader, kai followers</strong>.</li>
+</ul>
+<pre class="mermaid"><code>flowchart TB
+    W[Web servers] --&gt;|writes| L[(Leader DB)]
+    W --&gt;|reads| F1[(Follower 1)]
+    W --&gt;|reads| F2[(Follower 2)]
+    W --&gt;|reads| F3[(Follower 3)]
+    L -. replication log .-&gt; F1
+    L -. replication log .-&gt; F2
+    L -. replication log .-&gt; F3</code></pre>
+<p><strong>Kya milta hai</strong></p>
+<ul>
+<li><strong>Performance</strong> — reads kai machines pe bant jaate hain aur parallel chalte hain.</li>
+<li><strong>Reliability</strong> — disk fail ho, ya poora data center jal jaaye, data bacha rahta hai agar replicas kahin aur hain.</li>
+<li><strong>Availability</strong> — ek DB machine down ho toh baaki jawab dete rahte hain.</li>
+</ul>
+<p><strong>Kuch fail ho toh kya hota hai</strong></p>
+<ul>
+<li><strong>Follower mar gaya</strong> → reads baaki followers pe (ya kuch der leader pe); naya follower snapshot + log se banta hai.</li>
+<li><strong>Leader mar gaya</strong> → ek follower ko <strong>promote</strong> karke leader banate hain (<em>failover</em>). Mushkil hissa: woh follower thoda <strong>peeche</strong> ho sakta hai, toh last kuch writes gayab ho sakte hain. Production systems consensus (jaise etcd mein Raft, MySQL ke liye Orchestrator) aur careful recovery use karte hain yeh decide karne ke liye ki sabse fresh kaun hai.</li>
+</ul>
+<h3 id="thoda-gehraai-mein-sync-vs-async-replication-aur-lag">Thoda gehraai mein: sync vs async replication aur lag<a class="headerlink" href="#thoda-gehraai-mein-sync-vs-async-replication-aur-lag" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Leader kiska wait karta hai…</th>
+<th>Fayda</th>
+<th>Nuksaan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Synchronous</strong></td>
+<td>Follower confirm kare, tab client ko "OK"</td>
+<td>Follower kabhi peeche nahi</td>
+<td>Ek slow follower har write slow kar deta hai</td>
+</tr>
+<tr>
+<td><strong>Asynchronous</strong></td>
+<td>Kisi ka nahi — turant reply</td>
+<td>Tez writes</td>
+<td><strong>Replication lag</strong>: followers seconds peeche ho sakte hain</td>
+</tr>
+<tr>
+<td><strong>Semi-sync</strong></td>
+<td>Kam se kam ek follower</td>
+<td>Achha compromise</td>
+<td>Writes thode slow</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Replication lag</strong> asli bugs banata hai. Classic example — <em>read-your-own-writes</em>:</p>
+<blockquote>
+<p>Riya apni profile photo update karti hai (write → leader). Page reload hota hai aur ek follower se padhta hai
+jisko change abhi mila hi nahi. Usse <strong>purani</strong> photo dikhti hai aur woh sochti hai upload fail ho gaya.</p>
+</blockquote>
+<p>Fixes: user ke <strong>apne</strong> data ko write ke baad thodi der tak leader se padho; ya replication position track karo
+aur sirf un followers se padho jo catch-up kar chuke hain; ya user ke hisaab se route karo taaki user ek hi replica pe tike.</p>
+<div class="admonition tip">
+<p class="admonition-title">Leader–follower se aage</p>
+<p><strong>Multi-leader</strong> (kai DCs writes lete hain, phir sync karte hain) aur <strong>leaderless</strong> (Dynamo-style, koi bhi
+node write le sakta hai, quorum decide karta hai) bhi hote hain. Yeh simplicity deke availability lete hain,
+aur <strong>write conflicts</strong> laate hain. Chapter 6 (Key-Value Store) leaderless replication mein gehraai se jaata hai.</p>
+</div>
+<hr />
+<h2 id="stage-5-cache">Stage 5 · Cache<a class="headerlink" href="#stage-5-cache" title="Permanent link">&para;</a></h2>
+<p>Har page load database ko kai baar hit karta hai. <strong>Cache</strong> mehnge ya baar-baar hone waale reads ke results ko
+<strong>memory mein</strong> rakhta hai, jo disk-wale database se lagbhag <strong>100–1000× tez</strong> hai.</p>
+<pre class="mermaid"><code>flowchart LR
+    W[Web server] --&gt;|1. key lao| C[(Cache&lt;br/&gt;Redis / Memcached)]
+    C --&gt;|2a. hit: return| W
+    W --&gt;|2b. miss: query| DB[(Database)]
+    DB --&gt;|3. rows| W
+    W --&gt;|4. key set karo, TTL| C</code></pre>
+<p>Upar waala flow — pehle cache check karo, miss pe DB padho aur cache bhar do — sabse common pattern hai. Book ise
+<em>read-through</em> cache kehti hai; bahut engineers isi flow ko <strong>cache-aside</strong> kehte hain (application khud cache bharti hai).
+Java mein:</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">public</span><span class="w"> </span><span class="n">User</span><span class="w"> </span><span class="nf">getUser</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"user:"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">id</span><span class="p">;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">User</span><span class="w"> </span><span class="n">cached</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cache</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">key</span><span class="p">);</span><span class="w">              </span><span class="c1">// 1. pehle cache try karo</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cached</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">cached</span><span class="p">;</span><span class="w">         </span><span class="c1">// 2a. hit</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="n">User</span><span class="w"> </span><span class="n">fromDb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">userRepository</span><span class="p">.</span><span class="na">findById</span><span class="p">(</span><span class="n">id</span><span class="p">);</span><span class="w"> </span><span class="c1">// 2b. miss → database</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fromDb</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="n">cache</span><span class="p">.</span><span class="na">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">fromDb</span><span class="p">,</span><span class="w"> </span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMinutes</span><span class="p">(</span><span class="mi">10</span><span class="p">));</span><span class="w"> </span><span class="c1">// 3. TTL ke saath bhar do</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">fromDb</span><span class="p">;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">}</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">updateUser</span><span class="p">(</span><span class="n">User</span><span class="w"> </span><span class="n">u</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="n">userRepository</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="n">u</span><span class="p">);</span><span class="w">         </span><span class="c1">// pehle source of truth mein likho</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="n">cache</span><span class="p">.</span><span class="na">delete</span><span class="p">(</span><span class="s">"user:"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="na">id</span><span class="p">());</span><span class="w"> </span><span class="c1">// phir cached copy delete karo (update nahi)</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="caching-strategies-poora-menu">Caching strategies — poora menu<a class="headerlink" href="#caching-strategies-poora-menu" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Read path</th>
+<th>Write path</th>
+<th>Kab use karein</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cache-aside</strong> (lazy loading)</td>
+<td>App cache check kare, miss pe DB se laaye aur bhar de</td>
+<td>App DB mein likhe, cache key delete kare</td>
+<td>Read-heavy apps ka default</td>
+</tr>
+<tr>
+<td><strong>Read-through</strong></td>
+<td>Cache library khud miss pe DB se load kare</td>
+<td>—</td>
+<td>Loading logic cache layer mein chahiye</td>
+</tr>
+<tr>
+<td><strong>Write-through</strong></td>
+<td>—</td>
+<td>Cache <em>aur</em> DB dono mein synchronously likho</td>
+<td>Write ke turant baad data cache mein chahiye</td>
+</tr>
+<tr>
+<td><strong>Write-behind</strong> (write-back)</td>
+<td>—</td>
+<td>Abhi cache mein likho, baad mein batch mein DB mein flush</td>
+<td>Bahut write-heavy, thoda loss chalega (counters, likes)</td>
+</tr>
+<tr>
+<td><strong>Write-around</strong></td>
+<td>—</td>
+<td>Sirf DB mein likho; agle read pe cache bharega</td>
+<td>Data ek baar likha, kam dobara padha jaata hai</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cache-lagane-se-pehle-kya-sochna-hai">Cache lagane se pehle kya sochna hai<a class="headerlink" href="#cache-lagane-se-pehle-kya-sochna-hai" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Kab cache karein.</strong> Jo data <strong>zyada padha, kam badla</strong> jaata hai. Cache ko kabhi akeli copy mat samjho — volatile memory mein hai, restart hua toh sab gaya.</li>
+<li><strong>Expiration (TTL).</strong> Iske bina stale data hamesha pada rahega aur memory bhar jaayegi. Bahut chhota → DB ko baar-baar reload se pareshan karoge; bahut lamba → users ko purana data dikhega. Minutes se hours typical hai; har data type ke liye tune karo.</li>
+<li><strong>Consistency.</strong> DB write aur cache update <strong>ek transaction nahi</strong> hain, toh drift ho sakta hai (khaaskar regions ke across). Write pe key delete karna (upar jaisa) update karne se safe hai, kyunki do concurrent updates galat value nahi chhod sakte. Facebook ka <em>Scaling Memcache</em> paper isi mushkil ka classic reference hai.</li>
+<li><strong>Failure.</strong> Ek cache server = SPOF. Kai chalao (zones / DCs ke across) aur <strong>memory over-provision</strong> karo taaki node loss ya growth spike pe mass eviction na ho.</li>
+<li><strong>Eviction policy.</strong> Memory full hui toh kuch toh hatega:<ul>
+<li><strong>LRU</strong> (least recently used) — usual default.</li>
+<li><strong>LFU</strong> (least frequently used) — jab popularity stable ho tab better.</li>
+<li><strong>FIFO</strong> — sabse simple, rarely best.</li>
+</ul>
+</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Cache stampede (thundering herd)</p>
+<p>Ek hot key (jaise home-page feed) expire hui. 10,000 requests ek saath miss hui aur <strong>sab</strong> ek saath database pe
+gir padi — DB gir gaya. Fixes: sirf ek request ko key rebuild karne do (lock ya <em>single-flight</em>), jab tak ek
+worker refresh kare tab tak stale value serve karo, aur TTLs mein <strong>random jitter</strong> daalo taaki saari keys same second pe expire na hon.</p>
+</div>
+<hr />
+<h2 id="stage-6-content-delivery-network-cdn">Stage 6 · Content Delivery Network (CDN)<a class="headerlink" href="#stage-6-content-delivery-network-cdn" title="Permanent link">&para;</a></h2>
+<p>Images, videos, CSS aur JS <strong>static</strong> hain — har user ke liye same bytes. Inhe web servers se serve karna unka
+CPU aur bandwidth barbaad karta hai aur door ke users ke liye slow hai. <strong>CDN</strong> duniya bhar mein phaile servers ka
+network hai (<strong>edge locations</strong>) jo static content users ke paas cache karta hai.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant A as User A (Mumbai)
+    participant E as CDN edge (Mumbai)
+    participant O as Origin (S3 / web server)
+    participant B as User B (Pune)
+    A-&gt;&gt;E: GET cdn.example.in/logo.png
+    E-&gt;&gt;O: miss → logo.png laao
+    O--&gt;&gt;E: logo.png + Cache-Control TTL
+    E--&gt;&gt;A: logo.png (ab edge pe cached)
+    B-&gt;&gt;E: GET cdn.example.in/logo.png
+    E--&gt;&gt;B: hit → Mumbai se hi serve, origin ko pata bhi nahi</code></pre>
+<ul>
+<li>URL CDN ke domain ki taraf point karta hai (jaise <code>cdn.example.in/...</code>, jo CDN provider pe mapped hai).</li>
+<li><strong>Miss</strong> pe edge <strong>origin</strong> (tumhara server ya S3) se laata hai, origin ke bataye <strong>TTL</strong> tak cache karta hai, aur return karta hai.</li>
+<li>Us region ki har agli request TTL khatam hone tak <strong>hit</strong> hai.</li>
+</ul>
+<p><strong>Pull vs push CDN.</strong> <em>Pull</em> (upar waala) pehli request pe lazily laata hai — easy, zyada tar sites ke liye achha.
+<em>Push</em> matlab tum content pehle se CDN pe upload karte ho — badi files ke liye kaam ka jo popular hone waali hain (nayi movie release).</p>
+<p><strong>Kya sochna hai</strong></p>
+<ul>
+<li><strong>Cost</strong> — per GB transfer ka paisa lagta hai. Kam access hone waali files CDN pe mat daalo.</li>
+<li><strong>Expiry</strong> — time-sensitive content ko sensible TTL chahiye.</li>
+<li><strong>CDN outage</strong> — client/app origin pe fall back kar sake.</li>
+<li><strong>Invalidation</strong> — file jaldi hatani hai toh vendor ki invalidation API call karo, ya better, <strong>versioned URLs</strong> use karo (<code>app.css?v=42</code> ya <code>app.3f9a1c.css</code>). Naya URL = naya object, toh invalidate karne ko kuch bacha hi nahi.</li>
+</ul>
+<p>Stage 5 aur 6 ke baad web servers static files serve nahi karte, aur DB cache ke peeche protected hai.</p>
+<hr />
+<h2 id="stage-7-stateless-web-tier">Stage 7 · Stateless web tier<a class="headerlink" href="#stage-7-stateless-web-tier" title="Permanent link">&para;</a></h2>
+<p>Web servers ko freely add/remove karne ke liye (auto-scaling), <strong>koi bhi web server user ka state (jaise session) nahi rakh sakta</strong>.</p>
+<p><strong>Stateful</strong> — user A ka session server 1 ki memory mein hai. A ki har request <strong>server 1 pe hi</strong> jaani chahiye.
+LBs yeh <strong>sticky sessions</strong> se kar lete hain, par phir servers add/remove karna ya ek server khona sessions tod deta hai,
+aur load uneven bant-ta hai.</p>
+<p><strong>Stateless</strong> — session data ek <strong>shared store</strong> mein hai (Redis, NoSQL DB, ya RDBMS). Koi bhi server koi bhi request
+le sakta hai; servers interchangeable "cattle" hain, "pets" nahi.</p>
+<pre class="mermaid"><code>flowchart LR
+    U[Users] --&gt; LB{{Load balancer}}
+    LB --&gt; W1[Web 1]
+    LB --&gt; W2[Web 2]
+    LB --&gt; W3[Web 3]
+    W1 &amp; W2 &amp; W3 --&gt; S[(Shared session store&lt;br/&gt;Redis / NoSQL)]</code></pre>
+<p>Ab <strong>auto-scaling</strong> bachchon ka khel hai: <em>"agar average CPU 5 minute tak 70% se upar ho toh 2 servers add karo"</em> jaisa
+rule seedha kaam karta hai, kyunki naye server ko purane servers se kuch nahi chahiye.</p>
+<div class="admonition tip">
+<p class="admonition-title">Thoda gehraai mein: sessions ki jagah tokens</p>
+<p>Stateless hone ka ek aur tareeka hai state ko <strong>client mein</strong> rakhna: ek signed token (jaise JWT) jo har server
+shared key se verify kar sake, bina kisi lookup ke. Trade-off: token ko expiry se pehle revoke karna mushkil hai,
+isliye aksar short expiry + chhoti revocation list ke saath use hota hai.</p>
+</div>
+<hr />
+<h2 id="stage-8-multiple-data-centers">Stage 8 · Multiple data centers<a class="headerlink" href="#stage-8-multiple-data-centers" title="Permanent link">&para;</a></h2>
+<p>Jab users duniya bhar mein phail jaate hain, ek data center ka matlab door ke users ke liye high latency, aur woh DC
+fail hua toh total outage. Toh hum <strong>do ya zyada</strong> chalate hain.</p>
+<pre class="mermaid"><code>flowchart TB
+    U[Users] --&gt; G{{GeoDNS}}
+    G --&gt;|"x% (sabse paas)"| DC1
+    G --&gt;|"(100-x)%"| DC2
+    subgraph DC1[Data center: US-East]
+      LB1{{LB}} --&gt; W1[Web tier] --&gt; C1[(Cache)] &amp; D1[(DB)]
+    end
+    subgraph DC2[Data center: US-West]
+      LB2{{LB}} --&gt; W2[Web tier] --&gt; C2[(Cache)] &amp; D2[(DB)]
+    end
+    D1 &lt;-. async replication .-&gt; D2</code></pre>
+<ul>
+<li><strong>GeoDNS</strong> user ki location ke hisaab se domain ko alag IP mein resolve karta hai, aur usse sabse paas waale DC pe bhejta hai.</li>
+<li>DC2 down hua toh DNS <strong>100%</strong> traffic DC1 pe bhej deta hai.</li>
+</ul>
+<p>Mushkil kya hai:</p>
+<ol>
+<li><strong>Traffic redirection</strong> — users ko steer karne aur jaldi failover karne ke tools (GeoDNS, anycast, global LBs). DNS caching ki wajah se failover instant nahi hota; TTLs kam rakho.</li>
+<li><strong>Data synchronisation</strong> — failover ke baad user jis DC mein pahunche, wahan uska data pehle se hona chahiye. Data <strong>DCs ke across</strong> replicate hota hai, usually <strong>asynchronously</strong> (toh disaster mein kuch seconds ke writes kho sakte hain). Netflix ka active-active multi-region setup famous example hai.</li>
+<li><strong>Testing aur deployment</strong> — har DC mein same code aur config chalna chahiye. Automated deployment zaroori hai.</li>
+</ol>
+<p><strong>Active-passive vs active-active:</strong> active-passive mein doosra DC warm standby hai. Active-active mein dono live
+traffic serve karte hain — better utilisation aur tez failover, par same data pe do jagah concurrent writes handle karne padte hain.</p>
+<hr />
+<h2 id="stage-9-message-queue">Stage 9 · Message queue<a class="headerlink" href="#stage-9-message-queue" title="Permanent link">&para;</a></h2>
+<p>Kuch kaam slow hote hain (images resize karna, emails bhejna, video transcode karna) aur unhe user ki request block
+nahi karni chahiye. <strong>Message queue</strong> services ke beech ek durable buffer hai jo <strong>asynchronous</strong> communication enable karta hai.</p>
+<ul>
+<li><strong>Producers</strong> messages queue mein publish karte hain.</li>
+<li><strong>Consumers</strong> messages uthate hain aur kaam karte hain.</li>
+<li>Dono ko ek hi time pe zinda hone ki zaroorat nahi → <strong>decoupling</strong>.</li>
+</ul>
+<pre class="mermaid"><code>flowchart LR
+    W[Web servers&lt;br/&gt;producers] --&gt;|"job publish: photo 123 crop karo"| Q[[Message queue]]
+    Q --&gt; P1[Photo worker 1]
+    Q --&gt; P2[Photo worker 2]
+    Q --&gt; P3[Photo worker 3]
+    P1 &amp; P2 &amp; P3 --&gt; S[(Object storage)]</code></pre>
+<p><strong>Example:</strong> ek photo app users ko crop, sharpen, blur karne deta hai. Web server bas queue mein job daal deta hai aur
+turant "processing…" reply kar deta hai. Workers apni speed se jobs uthate hain. Queue badhi toh workers add karo;
+mostly khaali rehti hai toh kuch hata do. Producers aur consumers <strong>alag-alag scale</strong> hote hain.</p>
+<h3 id="thoda-gehraai-mein">Thoda gehraai mein<a class="headerlink" href="#thoda-gehraai-mein" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Delivery guarantees.</strong> <em>At-most-once</em> (message kho sakta hai), <em>at-least-once</em> (duplicate ho sakta hai — common default), <em>exactly-once</em> (mehenga, limited). At-least-once ke saath consumers ko <strong>idempotent</strong> banao: same message do baar process ho toh bhi nuksaan na ho (message ID se dedupe).</li>
+<li><strong>Queue vs log.</strong> RabbitMQ/SQS-style queues consume hone ke baad message delete kar dete hain. <strong>Kafka</strong> ek log hai: messages retain hote hain, consumers apna offset track karte hain, kai consumer groups same stream replay kar sakte hain.</li>
+<li><strong>Backpressure.</strong> Queue depth key metric hai — depth badh rahi hai matlab consumers peeche reh gaye. Yeh auto-scaling ka natural signal bhi hai.</li>
+<li><strong>Dead-letter queue (DLQ).</strong> Jo messages baar-baar fail hote hain unhe side mein kar do, taaki baaki sab block na ho.</li>
+</ul>
+<hr />
+<h2 id="stage-10-logging-metrics-automation">Stage 10 · Logging, metrics, automation<a class="headerlink" href="#stage-10-logging-metrics-automation" title="Permanent link">&para;</a></h2>
+<p>Kuch servers pe yeh nice-to-have hain. Is scale pe zaroori.</p>
+<ul>
+<li><strong>Logging</strong> — har server ke error logs ek searchable jagah collect karo (ELK / OpenSearch, Loki, Cloud Logging).</li>
+<li><strong>Metrics</strong> teen levels pe:<ul>
+<li><em>Host</em>: CPU, memory, disk I/O, network.</li>
+<li><em>Aggregated/service</em>: DB tier latency, cache hit ratio, queue depth, error rate.</li>
+<li><em>Business</em>: daily active users, retention, revenue, sign-ups.</li>
+</ul>
+</li>
+<li><strong>Automation</strong> — CI (har commit automatically build aur test), CD (automated, repeatable deploys), infrastructure as code.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Four golden signals</p>
+<p>Kisi bhi service ke liye dekho <strong>latency</strong>, <strong>traffic</strong>, <strong>errors</strong> aur <strong>saturation</strong>. Interview mein inka naam
+loge toh lagega tumne production systems chalaye hain.</p>
+</div>
+<hr />
+<h2 id="stage-11-database-scale-karna-sharding">Stage 11 · Database scale karna: sharding<a class="headerlink" href="#stage-11-database-scale-karna-sharding" title="Permanent link">&para;</a></h2>
+<p>Data badhta ja raha hai, aur akela leader overloaded hai. Phir se do options.</p>
+<p><strong>Vertical:</strong> ek monster database server khareed lo. Cloud providers <strong>terabytes RAM</strong> waali machines dete hain, aur
+Stack Overflow saalon tak ~10M monthly visitors ke saath ek hi primary database pe chala. Par: hardware ki hard limit,
+phir bhi SPOF, aur bahut mehenga.</p>
+<p><strong>Horizontal = sharding:</strong> data ko kai databases (<strong>shards</strong>) mein tod do. Har shard ka <strong>schema same</strong> hai par har
+ek mein rows ka <strong>alag subset</strong> hai.</p>
+<pre class="mermaid"><code>flowchart TB
+    A[App] --&gt; R{"shard = user_id % 4"}
+    R --&gt;|0| S0[(Shard 0&lt;br/&gt;users 0,4,8…)]
+    R --&gt;|1| S1[(Shard 1&lt;br/&gt;users 1,5,9…)]
+    R --&gt;|2| S2[(Shard 2&lt;br/&gt;users 2,6,10…)]
+    R --&gt;|3| S3[(Shard 3&lt;br/&gt;users 3,7,11…)]</code></pre>
+<h3 id="shard-key-chunna-sabse-important-decision">Shard key chunna (sabse important decision)<a class="headerlink" href="#shard-key-chunna-sabse-important-decision" title="Permanent link">&para;</a></h3>
+<p><strong>Shard key</strong> (partition key) decide karti hai row kis shard pe jaayegi. Achhi key:</p>
+<ol>
+<li><strong>Data barabar baant-ti hai</strong> (high cardinality, koi skew nahi).</li>
+<li><strong>Main query se match karti hai</strong> — common request <strong>ek</strong> shard pe jaaye, saare shards pe nahi.</li>
+<li><strong>Kam badalti hai</strong> — row ko ek shard se doosre pe le jaana mehenga hai.</li>
+</ol>
+<p>Common sharding strategies:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Kaise</th>
+<th>Fayda</th>
+<th>Nuksaan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hash-based</strong></td>
+<td><code>hash(key) % N</code> (ya consistent hashing)</td>
+<td>Barabar spread</td>
+<td>Range queries saare shards pe; N badla toh zyada data hilta hai</td>
+</tr>
+<tr>
+<td><strong>Range-based</strong></td>
+<td><code>A–F</code> → shard 1, <code>G–M</code> → shard 2 … ya date se</td>
+<td>Range scans saste</td>
+<td>Hotspots (saara naya data latest shard pe)</td>
+</tr>
+<tr>
+<td><strong>Directory / lookup</strong></td>
+<td>Ek table key → shard map karti hai</td>
+<td>Flexible, rebalance easy</td>
+<td>Lookup service extra infra + SPOF ho sakti hai</td>
+</tr>
+<tr>
+<td><strong>Geo-based</strong></td>
+<td>India ke users → shard IN</td>
+<td>Data locality, data-residency laws</td>
+<td>Sizes uneven</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sharding-jo-nayi-problems-laati-hai">Sharding jo nayi problems laati hai<a class="headerlink" href="#sharding-jo-nayi-problems-laati-hai" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Resharding.</strong> Ek shard bhar gaya (growth) ya kuch shards jaldi bhar gaye (skew) → sharding function badalna padega aur <strong>data move</strong> karna padega. <code>% N</code> ke saath N badla toh lagbhag sab relocate hota hai. <strong>Consistent hashing</strong> (Chapter 5) sirf ~1/N keys move karke yeh fix karta hai.</li>
+<li><strong>Celebrity / hotspot problem.</strong> Virat Kohli, Shah Rukh Khan aur Taylor Swift ek hi shard pe aa gaye toh reads se woh pighal jaayega. Fixes: hot keys ko <strong>dedicated shards</strong> do, hot key ko aur tod do (jaise <code>celebrity_id#1..#10</code>), aur aggressively cache karo.</li>
+<li><strong>Shards ke across joins aur transactions.</strong> Shards ke across SQL join slow ya impossible hai, aur cross-shard transactions ko two-phase commit chahiye. Common workaround: <strong>denormalise</strong> — data aise store karo ki har query ek shard ki ek table se answer ho jaaye.</li>
+</ol>
+<p>Aakhir mein, jo workloads ko relational features nahi chahiye (activity logs, session data, counters) unhe <strong>NoSQL</strong>
+stores mein le jao taaki relational database ka load kam ho.</p>
+<hr />
+<h2 id="final-picture">Final picture<a class="headerlink" href="#final-picture" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TB
+    U["Users (web + mobile)"] --&gt; DNS{{GeoDNS}}
+    U --&gt; CDN[(CDN&lt;br/&gt;static assets)]
+    DNS --&gt; LB{{Load balancer}}
+    subgraph DC["Data center (×2 ya zyada)"]
+      LB --&gt; W1[Web 1] &amp; W2[Web 2] &amp; W3[Web N]
+      W1 &amp; W2 &amp; W3 --&gt; CACHE[(Cache cluster)]
+      W1 &amp; W2 &amp; W3 --&gt; SESS[(Session store / NoSQL)]
+      W1 &amp; W2 &amp; W3 --&gt; SH0[(Shard 0&lt;br/&gt;leader + followers)] &amp; SH1[(Shard 1&lt;br/&gt;leader + followers)]
+      W1 &amp; W2 &amp; W3 --&gt; MQ[[Message queue]] --&gt; WK[Workers]
+      MON[Logging · Metrics · Automation]
+    end</code></pre>
+<p><strong>Scaling checklist</strong> (yaad kar lo — aage ke har chapter ki vocabulary yahi hai):</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Web tier <strong>stateless</strong> hai; state shared stores mein hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>Har tier pe redundancy</strong> — koi important cheez sirf ek machine pe nahi chalti.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Reads aggressively <strong>cache</strong> karo; <strong>static assets CDN pe</strong>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Databases <strong>replicate</strong> karo; ek leader kaafi na ho toh <strong>shard</strong> karo.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Geo-routing aur failover ke saath <strong>multiple data centers</strong>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Queues se <strong>decouple</strong> karo; badi apps ko <strong>independent services</strong> mein todo.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>Sab kuch monitor</strong> karo aur builds, tests, deploys <strong>automate</strong> karo.</li>
+</ul>
+<hr />
+<h2 id="trade-offs-ek-nazar-mein">Trade-offs ek nazar mein<a class="headerlink" href="#trade-offs-ek-nazar-mein" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Technique</th>
+<th>Kya milta hai</th>
+<th>Kya dena padta hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Load balancer</td>
+<td>Availability, horizontal scale</td>
+<td>Ek extra hop; LB khud redundant hona chahiye</td>
+</tr>
+<tr>
+<td>Replication</td>
+<td>Read scale, durability, failover</td>
+<td>Replication lag, failover complexity</td>
+</tr>
+<tr>
+<td>Cache</td>
+<td>Latency, DB ka load kam</td>
+<td>Staleness, invalidation bugs, stampedes</td>
+</tr>
+<tr>
+<td>CDN</td>
+<td>Global latency, origin ka load kam</td>
+<td>Per GB cost, invalidation</td>
+</tr>
+<tr>
+<td>Stateless tier</td>
+<td>Easy auto-scaling, resilience</td>
+<td>Ek shared state store chalana padta hai</td>
+</tr>
+<tr>
+<td>Multi-DC</td>
+<td>Disaster tolerance, kam global latency</td>
+<td>Cross-DC sync, failover pe data loss possible, ops cost</td>
+</tr>
+<tr>
+<td>Message queue</td>
+<td>Decoupling, spikes smooth</td>
+<td>Results baad mein, duplicates, ek aur system</td>
+</tr>
+<tr>
+<td>Sharding</td>
+<td>Write + storage scale</td>
+<td>Resharding, hotspots, cross-shard joins/transactions nahi</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>Tumhare read replicas 5 second peeche hain. User post edit karta hai aur turant purana version dekhta hai. Kya karoge?</summary>
+<p>Yeh async replication lag se hone waali <strong>read-your-own-writes</strong> problem hai. Options:
+(1) user ke write ke baad kuch seconds tak <strong>usi user ke</strong> reads leader pe bhejo;
+(2) write ke time leader ki log position note karo aur sirf un replicas se padho jo wahan tak pahunch gaye;
+(3) client-side state optimistically update kar do taaki UI naya version dikhaye.
+Batao ki replication ko synchronous karna bhi fix karega, par write latency aur availability kharab hogi.</p>
+</details>
+<details class="question">
+<summary>Cache poora down ho gaya. Kya hoga aur database ko kaise bachaoge?</summary>
+<p>Har read DB read ban jaata hai — DB pe normal se 10–50× load aa sakta hai aur woh gir sakta hai (cascading failure).
+Bachav: cache ko zones ke across <strong>replicated cluster</strong> ki tarah chalao; DB ke raaste pe <strong>circuit breaker / rate limit</strong>
+lagao; full traffic bhejne se pehle naye cache ko <strong>warm</strong> karo; poora fail hone ki jagah degraded response do (jaise thoda stale feed).</p>
+</details>
+<details class="question">
+<summary>Update pe cache key delete kyun karte ho, nayi value kyun nahi likhte?</summary>
+<p>Do concurrent writers interleave ho sakte hain: A ne DB=1 likha, B ne DB=2 likha, B ne cache=2 set kiya, A ne cache=1
+set kiya → cache mein ab stale value hai <strong>aur expiry door tak nahi</strong>. Delete idempotent hai aur order se fark nahi padta:
+agla reader sahi value reload kar lega. (Concurrent reader ke saath chhota sa race ab bhi hai; TTL damage limit karta hai.)</p>
+</details>
+<details class="question">
+<summary>E-commerce orders table ke liye shard key kaise chunoge?</summary>
+<p>Dominant queries dekho: "meri orders dikhao" (<code>user_id</code> se) aur "order X do" (<code>order_id</code> se). <code>user_id</code> se shard karne
+se user ki saari orders ek shard pe rehti hain (fast history page, scatter-gather nahi). Phir order ID mein shard embed
+kar do (ya chhota <code>order_id → user_id</code> lookup rakho) taaki direct lookup bhi ek shard pe jaaye. Bade B2B customers ka
+skew dhyaan rakho — unhe apna shard chahiye ho sakta hai.</p>
+</details>
+<details class="question">
+<summary>Cache kab NAHI lagaoge?</summary>
+<p>Jab data <strong>write-heavy</strong> ho ya lagbhag har read pe badalta ho (hit ratio kam), jab <strong>strong consistency</strong> chahiye aur
+staleness chalegi hi nahi (transfer ke time account balance), ya jab DB already latency target meet kar raha ho — cache ek
+aur system aur bugs ki ek nayi category laata hai.</p>
+</details>
+<details class="question">
+<summary>Sticky sessions vs shared session store — kaunsa aur kyun?</summary>
+<p>Shared store. Sticky sessions server fail hone pe toot jaate hain (users logout ho jaate hain), scale-in painful banate
+hain, aur load skew karte hain. Shared store (Redis cluster) har request pe ~1 ms add karta hai par servers interchangeable
+bana deta hai. Sticky sessions sirf short-lived, dobara banne waale state ke liye ya cache-locality optimisation ke liye theek hain.</p>
+</details>
+<hr />
+<h2 id="common-mistakes">Common mistakes<a class="headerlink" href="#common-mistakes" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Inse bacho</p>
+<ul>
+<li>1,000 users waale system ke liye seedha "microservices + Kafka + Cassandra" pe kood jaana. <strong>Bataye gaye requirements tak scale karo.</strong></li>
+<li>Cache add karna bina bataye ki <strong>kya</strong> cache hoga, <strong>TTL</strong> kya hai, aur <strong>invalidate</strong> kaise hoga.</li>
+<li>"Replicas add karo" bolna bina <strong>replication lag</strong> aur usse kya tootta hai bataye.</li>
+<li><strong>Shard key</strong> ka naam liye bina aur main query se justify kiye bina sharding karna.</li>
+<li>Bhool jaana ki <strong>load balancer, cache aur queue</strong> ko bhi redundancy chahiye.</li>
+<li>Cache ko database samajhna (data sirf memory mein).</li>
+</ul>
+</div>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Steps ka order</summary>
+<p>Ek startup ka single server 90% CPU pe hai. Database aur app same box pe hain, saari images app serve karta hai,
+aur sessions server memory mein hain. Pehle <strong>chaar</strong> changes kis order mein karoge, aur kyun?</p>
+<p><strong>Solution.</strong>
+1. <strong>DB ko alag machine pe le jao</strong> — sabse bada turant relief; app aur DB ladna band.
+2. <strong>Static images CDN / object storage pe daalo</strong> — app se bandwidth aur CPU ka bada hissa hat jaata hai.
+3. <strong>Sessions Redis mein le jao</strong> — web tier stateless ho jaata hai, jo agle step ki shart hai…
+4. <strong>Load balancer + doosra web server</strong> — horizontal scale aur web tier mein koi SPOF nahi.
+(Phir: DB ke aage cache, phir read replicas.)</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Cache sizing</summary>
+<p>Product catalog mein 50M products hain, average 2 KB each. 80% traffic top 10% products pe aata hai.
+Hot set cache karne ke liye kitni memory? 64 GB ke kitne cache nodes (30% headroom rakho)?</p>
+<p><strong>Solution.</strong> Hot set = 10% × 50M = 5M products × 2 KB = <strong>10 GB</strong>. Overhead ke saath (keys, data-structure
+metadata, fragmentation ~1.5×) ≈ 15 GB. 30% headroom → ~21 GB. <strong>Ek</strong> 64 GB node mein fit, par <strong>kam se kam
+2–3</strong> nodes chalao (replicas / zones ke across) taaki ek node fail ho toh sab DB pe na gire.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Hot shard</summary>
+<p>Tum tweets ko <code>user_id</code> se shard karte ho. 100M followers waala celebrity post karta hai aur uske shard ka CPU reads
+se 100% ho jaata hai. Teen mitigations batao.</p>
+<p><strong>Solution.</strong> (1) Celebrity ke recent tweets ko replicated cache tier mein <strong>cache</strong> karo taaki reads shard tak kam
+pahunchein. (2) Us hot shard ke liye specially <strong>read replicas</strong> badhao. (3) <strong>Hot key tod do</strong> — celebrity ko dedicated
+shard pe le jao, ya key ko salt karo (<code>user_id#0..#9</code>) taaki data kai shards mein phaile aur read pe fan-in karo.
+(Bonus: feeds ke liye celebrities ka fan-out-on-read path — Chapter 11 dekho.)</p>
+</details>
+<details class="example">
+<summary>Practice 4 — Availability ka hisaab</summary>
+<p>Tumhari app ko LB, web tier aur DB teeno up chahiye. Har ek 99.9% available hai. Overall availability kya hai?
+Agar automatic failover ke saath do independent DB replicas chalao toh kya badlega?</p>
+<p><strong>Solution.</strong> Series mein: 0.999³ ≈ <strong>99.7%</strong> (~26 ghante downtime/saal). Do DBs parallel mein: 1 − (0.001)² =
+99.9999%, toh total ≈ 0.999 × 0.999 × 0.999999 ≈ <strong>99.8%</strong>. <strong>Har</strong> tier pe redundancy hi number badhati hai —
+<a href="../02-back-of-the-envelope/">Chapter 2</a> ke widget mein try karo.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> DNS lookup se JSON response tak ek request trace kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> SQL vs NoSQL ko buzzwords se nahi, <strong>access patterns</strong> se samjha sakta hoon, aur chaar NoSQL families bata sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Pata hai vertical scaling kyun deewar se takrata hai aur horizontal scaling ko kya chahiye.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 4 load-balancing algorithms aur L4 vs L7 samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Leader–follower replication, failover, aur <strong>replication lag</strong> example ke saath samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Cache-aside code likh sakta hoon aur 5 caching strategies compare kar sakta hoon; TTL, eviction, stampede fixes pata hain.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> CDN content kaise serve karta hai, pull vs push, aur versioned URLs invalidation se better kyun hain — pata hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Web tier stateless kyun hona chahiye, samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Multi-DC setup aur uski teen mushkil problems bata sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Message queue kya deta hai, delivery guarantees, aur consumers idempotent kyun hone chahiye — pata hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Sharding strategies compare kar sakta hoon, shard key chun sakta hoon, aur resharding, hotspots, joins samjha sakta hoon.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../02-back-of-the-envelope/">Aage: 02 · Back-of-the-Envelope Estimation <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../start-here/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Yahan se shuru karo">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Yahan se shuru karo
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../02-back-of-the-envelope/" class="md-footer__link md-footer__link--next" aria-label="Next: 02 · Back-of-the-Envelope Estimation">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                02 · Back-of-the-Envelope Estimation
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

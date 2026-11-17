@@ -1,0 +1,2269 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Kisi bhi system design interview ke liye 4-step method — scoping, high-level design, deep dives aur wrap-up — time budgets, question bank, poora mock walkthrough aur interviewer asal mein kya score karta hai.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/hi/foundations/03-interview-framework/">
+      
+      
+        <link rel="prev" href="../02-back-of-the-envelope/">
+      
+      
+        <link rel="next" href="../../building-blocks/04-rate-limiter/">
+      
+      
+        
+          <link rel="alternate" href="../../../foundations/03-interview-framework/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>03 · Interview ka Framework - SysDes — System Design, Gehraai se</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#03-system-design-interview-ka-framework" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-header__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Gehraai se
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              03 · Interview ka Framework
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../foundations/03-interview-framework/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Yahan se shuru karo
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations (Neev)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../building-blocks/04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../case-studies/08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revision & Aage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-nav__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Gehraai se
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Yahan se shuru karo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations (Neev)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations (Neev)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-asal-mein-kya-judge-kar-raha-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer asal mein kya judge kar raha hai
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-step-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4-step framework
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-problem-samjho-aur-scope-tay-karo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Problem samjho aur scope tay karo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Problem samjho aur scope tay karo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#question-bank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Question bank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jawabon-ko-requirements-sheet-mein-badlo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jawabon ko requirements sheet mein badlo
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design-propose-karo-aur-buy-in-lo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design propose karo aur buy-in lo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design propose karo aur buy-in lo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#apis-aur-data-model-daalein-ya-nahi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APIs aur data model — daalein ya nahi?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-photo-sharing-ka-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: photo-sharing ka high-level design
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-design-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Design deep dive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap up
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aadatein-jo-score-karti-hain-aur-jo-nuksaan-karti-hain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aadatein jo score karti hain — aur jo nuksaan karti hain
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poora-mock-walkthrough-pastebin-design-karo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poora mock walkthrough: "Pastebin design karo"
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kaam-ke-phrases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kaam ke phrases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revision & Aage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revision & Aage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary (Shabdkosh)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · Seekhna Jaari Hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-asal-mein-kya-judge-kar-raha-hai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer asal mein kya judge kar raha hai
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-step-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4-step framework
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-problem-samjho-aur-scope-tay-karo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Problem samjho aur scope tay karo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Problem samjho aur scope tay karo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#question-bank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Question bank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jawabon-ko-requirements-sheet-mein-badlo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jawabon ko requirements sheet mein badlo
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design-propose-karo-aur-buy-in-lo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design propose karo aur buy-in lo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design propose karo aur buy-in lo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#apis-aur-data-model-daalein-ya-nahi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APIs aur data model — daalein ya nahi?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-photo-sharing-ka-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: photo-sharing ka high-level design
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-design-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Design deep dive
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap up
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aadatein-jo-score-karti-hain-aur-jo-nuksaan-karti-hain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aadatein jo score karti hain — aur jo nuksaan karti hain
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poora-mock-walkthrough-pastebin-design-karo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poora mock walkthrough: "Pastebin design karo"
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kaam-ke-phrases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kaam ke phrases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/foundations/03-interview-framework.hi.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="03-system-design-interview-ka-framework">03 · System Design Interview ka Framework<a class="headerlink" href="#03-system-design-interview-ka-framework" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 35 min read</span>
+<span class="hot">🔥 Har case study mein yahi method use hoga</span>
+<span>Book: Chapter 3</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>Interview <strong>do colleagues ka milke ek vague problem solve karna</strong> simulate karta hai. Final diagram se zyada process matter karta hai.</li>
+<li>4 steps: <strong>(1) samjho &amp; scope karo</strong> (~5–8 min) → <strong>(2) high-level design + buy-in</strong> (~10–15 min) → <strong>(3) deep dive</strong> (~15–20 min) → <strong>(4) wrap up</strong> (~3–5 min).</li>
+<li><strong>Kabhi seedha solution pe mat koodo.</strong> Features, users, scale, growth, constraints poochho. Jawab likh lo.</li>
+<li>Deep dive interviewer ko steer karne do, par problem ke <strong>2–3 sabse mushkil hisse</strong> pehle se tayyar rakho.</li>
+<li>Red flags: over-engineering, chup rehna, ziddi hona, trade-offs ignore karna, chhoti baaton mein kho jaana.</li>
+</ul>
+</div>
+<h2 id="interviewer-asal-mein-kya-judge-kar-raha-hai">Interviewer asal mein kya judge kar raha hai<a class="headerlink" href="#interviewer-asal-mein-kya-judge-kar-raha-hai" title="Permanent link">&para;</a></h2>
+<p>Koi expect nahi karta ki tum 45 minute mein YouTube design kar do — hazaaron engineers ko saal lage. Toh test kya ho raha hai?</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Strong ho toh kaisa dikhta hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ambiguity handle karna</strong></td>
+<td>"Chat app design karo" ko numbers ke saath ek saaf, agreed scope mein badal dete ho.</td>
+</tr>
+<tr>
+<td><strong>Achhe sawaal</strong></td>
+<td>Tumhare sawaal design badal dete hain ("sirf 1:1, ya 500 logon ke groups?").</td>
+</tr>
+<tr>
+<td><strong>Technical design</strong></td>
+<td>Sensible components, saaf data flow, caches/queues/DBs ka sahi use.</td>
+</tr>
+<tr>
+<td><strong>Trade-off thinking</strong></td>
+<td>Alternatives batate ho aur <em>kyun</em> ek chuna — aur uski keemat kya hai.</td>
+</tr>
+<tr>
+<td><strong>Depth</strong></td>
+<td>Ek component pe dabaav pade toh 2–3 level aur andar ja sakte ho.</td>
+</tr>
+<tr>
+<td><strong>Communication &amp; collaboration</strong></td>
+<td>Zor se sochte ho, check-in karte ho, hints achhe se lete ho.</td>
+</tr>
+<tr>
+<td><strong>Pragmatism</strong></td>
+<td>Bataye gaye scale ke liye design karte ho, by default Google-scale ke liye nahi.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition danger">
+<p class="admonition-title">Red flags jo interviewer note karta hai</p>
+<ul>
+<li><strong>Over-engineering</strong> — 10K users ke liye 12 microservices aur Kafka. Complexity ki asli, badhti hui keemat hoti hai.</li>
+<li>Problem samajhne se pehle <strong>solution pe koodna</strong>.</li>
+<li><strong>Tang nazariya / zid</strong> — saaf counter-argument ke baad bhi apni choice defend karte rehna.</li>
+<li><strong>Lambi khamoshi</strong> — jo interviewer sun nahi sakta, use score nahi kar sakta.</li>
+<li><strong>Buzzword soup</strong> — "scalability ke liye microservices aur NoSQL use karenge", bina kisi reason ke.</li>
+</ul>
+</div>
+<hr />
+<h2 id="4-step-framework">4-step framework<a class="headerlink" href="#4-step-framework" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+    S1["① Samjho&lt;br/&gt;&amp; scope&lt;br/&gt;5–8 min"] --&gt; S2["② High-level&lt;br/&gt;design + buy-in&lt;br/&gt;10–15 min"]
+    S2 --&gt; S3["③ Deep dive&lt;br/&gt;15–20 min"]
+    S3 --&gt; S4["④ Wrap up&lt;br/&gt;3–5 min"]
+    S2 -. feedback .-&gt; S1
+    S3 -. feedback .-&gt; S2</code></pre>
+<p>Times 45-minute session ke hisaab se hain. Peeche jaate arrows important hain: zyada seekhte hue tum aksar scope ya
+high-level design revise karoge — yeh normal aur achha hai.</p>
+<hr />
+<h2 id="step-1-problem-samjho-aur-scope-tay-karo">Step 1 · Problem samjho aur scope tay karo<a class="headerlink" href="#step-1-problem-samjho-aur-scope-tay-karo" title="Permanent link">&para;</a></h2>
+<p><strong>Woh student mat bano jo sabse pehle jawab chilla deta hai.</strong> Design interview mein bina samjhe speed negative signal hai.
+Dheere chalo, poochho, aur jawab board pe likho.</p>
+<p>Jab tum poochte ho, interviewer ya toh jawab deta hai ya bolta hai "tum decide karo". Doosre case mein <strong>assumption bolo aur
+likh lo</strong> — baad mein refer karoge.</p>
+<h3 id="question-bank">Question bank<a class="headerlink" href="#question-bank" title="Permanent link">&para;</a></h3>
+<p>Relevant waale chuno — saare ek saath machine-gun mat karo.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Features (functional)</label><label for="__tabbed_1_2">Scale</label><label for="__tabbed_1_3">Quality (non-functional)</label><label for="__tabbed_1_4">Constraints</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<ul>
+<li><strong>Core features</strong> kaunse banane hain? Kya explicitly scope se bahar hai?</li>
+<li><strong>Users</strong> kaun hain — consumers, businesses, internal teams? Web, mobile, ya dono?</li>
+<li>Sabse important <strong>user journey</strong> kya hai? (jaise "photo post karna" aur "apna feed dekhna")</li>
+<li>Koi special requirement: search? notifications? analytics? edit/delete?</li>
+</ul>
+</div>
+<div class="tabbed-block">
+<ul>
+<li>Kitne <strong>users</strong> (MAU/DAU)? Kitne <strong>concurrent</strong>?</li>
+<li><strong>Read:write ratio</strong>? Typical object ka size?</li>
+<li>Kitni tezi se <strong>badh</strong> rahe hain? 3 / 6 / 12 mahine mein expected scale?</li>
+<li>Traffic <strong>spiky</strong> hai (sales, live events) ya smooth? Global ya ek region?</li>
+</ul>
+</div>
+<div class="tabbed-block">
+<ul>
+<li><strong>Latency</strong> target? (jaise reads ke liye p99 &lt; 200 ms)</li>
+<li><strong>Availability</strong> target? Thodi der down rehna chalega, ya thoda stale rehna?</li>
+<li><strong>Consistency</strong> — kya har read ko latest write dikhna zaroori hai? (bank balance vs like count)</li>
+<li><strong>Durability</strong> — kya kabhi data kho sakte hain? Kitne time tak rakhna hai?</li>
+</ul>
+</div>
+<div class="tabbed-block">
+<ul>
+<li>Existing <strong>tech stack</strong> ya services jo reuse kar sakein (auth, payments, blob store)?</li>
+<li>Budget / cost sensitivity? On-prem ya cloud?</li>
+<li>Legal: data residency, privacy (GDPR / DPDP), content moderation?</li>
+</ul>
+</div>
+</div>
+</div>
+<h3 id="jawabon-ko-requirements-sheet-mein-badlo">Jawabon ko requirements sheet mein badlo<a class="headerlink" href="#jawabon-ko-requirements-sheet-mein-badlo" title="Permanent link">&para;</a></h3>
+<p><strong>"Photo-sharing app design karo"</strong> ke liye ek chhoti scoping baatcheet kuch aisi ho sakti hai — dhyaan do, har jawab design ki
+ek branch kaat deta hai:</p>
+<div class="admonition example">
+<p class="admonition-title">Ek achhi scoping baatcheet (photo sharing)</p>
+<p><strong>Tum:</strong> Post kaun karta hai — koi bhi, ya sirf verified creators? — <strong>Interviewer:</strong> Koi bhi.
+<strong>Tum:</strong> Core actions? — <strong>I:</strong> Caption ke saath photo upload, logon ko follow karna, home feed scroll karna.
+<strong>Tum:</strong> Home feed ranked hai ya chronological? — <strong>I:</strong> Abhi ke liye chronological.
+<strong>Tum:</strong> Kitna bada? — <strong>I:</strong> 50M DAU; typical user kuch dino mein ek baar upload karta hai par feed din mein ~8 baar kholta hai.
+<strong>Tum:</strong> Max photo size, aur originals rakhne hain? — <strong>I:</strong> 10 MB tak; originals aur resized versions dono.
+<strong>Tum:</strong> Koi users jinke bahut zyada followers hain? — <strong>I:</strong> Haan, kuch accounts ke crore se zyada followers hain.</p>
+<p>"Chronological" ranking service hata deta hai. "Crore se zyada followers" warning hai ki pure fan-out-on-write dard dega.
+"Originals + resized" matlab async image-processing pipeline, object storage aur CDN.</p>
+</div>
+<p>Result board pe likho — yeh interviewer ke saath tumhara contract hai:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>FUNCTIONAL
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  1. Photo upload (≤10 MB) + caption
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  2. Follow / unfollow
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  3. Followed accounts ka home feed, naya pehle
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>NON-FUNCTIONAL
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  - 50M DAU; feed p99 &lt; 300 ms; upload dikhne mein kuch second lag sakte hain
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  - Feed ke liye consistency se zyada availability; uploaded photo kabhi na khoye
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>OUT OF SCOPE
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  - Ranking, stories, DMs, ads
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>ESTIMATES (Ch. 2)
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  - Feed loads ≈ 50M × 8 / 10^5 = 4K QPS avg, ~10K peak
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  - Uploads ≈ 50M × 0.3 / 10^5 = 150/s; 15M/din × ~3 MB stored (orig + sizes) ≈ 45 TB/din
+</span></code></pre></div>
+<hr />
+<h2 id="step-2-high-level-design-propose-karo-aur-buy-in-lo">Step 2 · High-level design propose karo aur buy-in lo<a class="headerlink" href="#step-2-high-level-design-propose-karo-aur-buy-in-lo" title="Permanent link">&para;</a></h2>
+<p>Goal: deep jaane se pehle <strong>ek blueprint jis pe dono agree karo</strong>.</p>
+<ol>
+<li><strong>Boxes sketch karo</strong>: clients → (DNS/CDN) → load balancer → services → cache → databases → queues/workers → object storage.</li>
+<li><strong>Ek request ko usme se chalao</strong> — "user upload karta hai: app pre-signed URL leta hai, seedha blob storage pe upload karta hai, phir <code>POST /photos</code> call karta hai…" Concrete use cases missing hisse dikha dete hain.</li>
+<li><strong>Estimates se sanity-check</strong> — "peak pe 10K QPS feed reads — cache-backed feed service ke liye theek hai."</li>
+<li><strong>Feedback maango</strong> — "Aage gehraai mein jaane se pehle kya yeh direction sahi lag rahi hai?" Interviewer ko teammate samjho.</li>
+</ol>
+<h3 id="apis-aur-data-model-daalein-ya-nahi">APIs aur data model — daalein ya nahi?<a class="headerlink" href="#apis-aur-data-model-daalein-ya-nahi" title="Permanent link">&para;</a></h3>
+<p>Problem pe depend karta hai. "Web search design karo" ke liye yeh bahut low-level hai. "URL shortener" ya
+"multiplayer game backend" ke liye API aur schema <em>hi</em> design hain. Doubt ho toh 2–4 core APIs sketch kar do:</p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="err">POST /v1/photos/upload-url  → 200 { upload_url, photo_id }     # object storage ka pre-signed URL</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="err">POST /v1/photos             { photo_id, caption }  → 201</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="err">GET  /v1/feed?cursor=...    → 200 { items[], next_cursor }</span>
+</span></code></pre></div>
+<p>aur 2–3 core tables:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>users(user_id PK, handle, ...)
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>photos(photo_id PK, owner_id, caption, storage_key, created_at)
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>follows(follower_id, followee_id, created_at)   PK(follower_id, followee_id)
+</span></code></pre></div>
+<h3 id="example-photo-sharing-ka-high-level-design">Example: photo-sharing ka high-level design<a class="headerlink" href="#example-photo-sharing-ka-high-level-design" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    C[Client] --&gt;|1. upload URL lo| API[API servers]
+    C --&gt;|2. bytes PUT karo| OBJ[(Object storage)]
+    C --&gt;|3. POST /photos| API
+    API --&gt; META[(Photo + follow DB)]
+    API --&gt;|new photo event| Q[[Queue]]
+    Q --&gt; IMG[Resize workers] --&gt; OBJ
+    Q --&gt; FAN[Feed builder] --&gt; FC[(Feed cache)]
+    C --&gt;|feed padho| API --&gt; FC
+    OBJ --&gt; CDN[(CDN)] --&gt; C</code></pre>
+<p>Upload path aur feed path alag hain, aur bhaari kaam (resizing, feed building) queue ke peeche asynchronously hota hai.
+Agreement ke liye itni detail kaafi hai — feeds ka gehraai waala kaam Chapter 11 mein.</p>
+<hr />
+<h2 id="step-3-design-deep-dive">Step 3 · Design deep dive<a class="headerlink" href="#step-3-design-deep-dive" title="Permanent link">&para;</a></h2>
+<p>Ab tak scope agree ho chuka, blueprint ban chuka, feedback mil chuka. Ab jahan zaroori ho wahan gehraai mein jao.</p>
+<p><strong>Deep dive ke liye kya chunein:</strong></p>
+<ol>
+<li><strong>Interviewer ke peeche chalo.</strong> Agar woh pooche "celebrity ke liye fan-out kaise chalega?", wahi tumhara deep dive hai.</li>
+<li><strong>Warna woh chuno jo is problem mein unique hai</strong> — jo isse <em>yeh</em> system banata hai, koi generic CRUD app nahi:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Typical deep dives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL shortener</td>
+<td>Hash/encode function, collisions, 301 vs 302, cache</td>
+</tr>
+<tr>
+<td>Rate limiter</td>
+<td>Algorithm choice, distributed counters, race conditions</td>
+</tr>
+<tr>
+<td>Chat</td>
+<td>WebSockets, message ordering/IDs, online presence, multi-device sync</td>
+</tr>
+<tr>
+<td>News feed</td>
+<td>Fan-out on write vs read, celebrity problem, feed cache</td>
+</tr>
+<tr>
+<td>Web crawler</td>
+<td>URL frontier (politeness + priority), dedup, traps</td>
+</tr>
+<tr>
+<td>YouTube</td>
+<td>Upload + transcoding pipeline, CDN cost, streaming protocols</td>
+</tr>
+<tr>
+<td>Google Drive</td>
+<td>Block-level sync, conflict resolution, consistency, notifications</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li><strong>Seniority se focus badalta hai.</strong> Junior: sahi components aur data flow. Senior: bottlenecks, capacity numbers, failure modes, operational concerns, cost.</li>
+</ol>
+<p><strong>Time management:</strong> kisi aisi cheez pe 10 minute jalana aasaan hai jo kuch dikhaati nahi (jaise ranking algorithm ka maths
+detail mein samjhana). Khud se poochte raho: <em>kya isse dikh raha hai ki main scalable system design kar sakta hoon?</em></p>
+<hr />
+<h2 id="step-4-wrap-up">Step 4 · Wrap up<a class="headerlink" href="#step-4-wrap-up" title="Permanent link">&para;</a></h2>
+<p>Interviewer open-ended follow-ups pooch sakta hai ya tumhe chunne de sakta hai. Inse breadth dikhao:</p>
+<ul>
+<li><strong>Bottlenecks &amp; improvements</strong> — "Single fan-out queue bottleneck hai; main ise user_id se partition karunga." Kabhi mat bolo ki design perfect hai.</li>
+<li><strong>Recap</strong> — 30 second mein design aur key trade-offs summarise karo. Khaaskar tab kaam ka jab tum kai raaston pe gaye ho.</li>
+<li><strong>Failure cases</strong> — server crash, network partition, cache loss, DC outage. Kya degrade hoga, kya khoyega?</li>
+<li><strong>Operations</strong> — metrics, logging, alerting, deployment/rollback.</li>
+<li><strong>Agla 10× scale</strong> — "100M DAU pe main post DB ko post_id se shard karunga aur doosra region add karunga."</li>
+<li><strong>Aur refinements</strong> — security, abuse/rate limiting, cost.</li>
+</ul>
+<hr />
+<h2 id="aadatein-jo-score-karti-hain-aur-jo-nuksaan-karti-hain">Aadatein jo score karti hain — aur jo nuksaan karti hain<a class="headerlink" href="#aadatein-jo-score-karti-hain-aur-jo-nuksaan-karti-hain" title="Permanent link">&para;</a></h2>
+<div class="grid">
+<div class="admonition success">
+<p class="admonition-title">Score karne waali aadatein</p>
+<ul>
+<li>Har assumption ko tab tak sawaal samjho jab tak interviewer confirm na kare.</li>
+<li>Kuch bhi draw karne se pehle requirements dohra ke bolo.</li>
+<li>Yaad rakho "sahi" design context pe depend karta hai — 5 logon ka startup aur hyperscaler alag decisions lete hain.</li>
+<li>Apni reasoning bolte jao; interviewer wahi grade karta hai jo sunta hai.</li>
+<li>Jab asli fork ho, dono raaste batao, ek chuno, aur uski keemat bolo.</li>
+<li>Blueprint agree hone ke baad sabse risky component pe pehle time do.</li>
+<li>Interviewer ko collaborator ki tarah use karo — unke hints free signal hain.</li>
+<li>Atak jao toh bhi chalte raho; zor se reasoning karne pe bhi credit milta hai.</li>
+</ul>
+</div>
+<div class="admonition failure">
+<p class="admonition-title">Nuksaan karne waali aadatein</p>
+<ul>
+<li>Common problems practice kiye bina pahunch jaana.</li>
+<li>Poochne se pehle draw karna.</li>
+<li>Ek box ko detail mein chamakana jab baaki system abhi khaali hai.</li>
+<li>Hint maangne ki jagah chup-chaap atke rehna.</li>
+<li>Pehle diagram ko "done" samajhna — jab tak interviewer session band na kare, check-in karte raho.</li>
+</ul>
+</div>
+</div>
+<hr />
+<h2 id="poora-mock-walkthrough-pastebin-design-karo">Poora mock walkthrough: "Pastebin design karo"<a class="headerlink" href="#poora-mock-walkthrough-pastebin-design-karo" title="Permanent link">&para;</a></h2>
+<p>Chaaro steps ka ek compressed example, taaki rhythm samajh aaye.</p>
+<details class="example">
+<summary>Step 1 — Scope (6 min)</summary>
+<p><strong>Tum:</strong> Users text paste karte hain aur shareable link milta hai — core yahi hai? Accounts, editing, syntax highlighting chahiye?
+<strong>I:</strong> Core hai paste + share link. Optional expiry. Editing nahi. Accounts optional.
+<strong>Tum:</strong> Per paste size limit? — <strong>I:</strong> Max 1 MB, zyada tar kuch KB.
+<strong>Tum:</strong> Scale? — <strong>I:</strong> 5M naye pastes/din, reads writes ke 10×.
+<strong>Tum:</strong> Kya links hamesha chalne chahiye? — <strong>I:</strong> Default expiry 1 saal, user chhoti chun sakta hai.</p>
+<p><em>Board:</em> FR: paste banao (≤1 MB, optional expiry), link se padho. NFR: high read availability, low read latency,
+pastes immutable. Estimates: writes 5M/10⁵ ≈ 60 QPS; reads ≈ 600 QPS (peak ~1.5K). Storage: 5M × 10 KB avg
+= 50 GB/din → 18 TB/saal.</p>
+</details>
+<details class="example">
+<summary>Step 2 — High-level design (12 min)</summary>
+<p><pre class="mermaid"><code>flowchart LR
+    C[Client] --&gt; LB{{LB}} --&gt; API[Paste service]
+    API --&gt;|metadata| DB[(Metadata DB&lt;br/&gt;id, s3_key, expiry, owner)]
+    API --&gt;|content| S3[(Object storage)]
+    API --&gt; R[(Cache: hot pastes)]
+    CL[Cleanup job] --&gt; DB &amp; S3</code></pre>
+<code>POST /pastes {content, expiry}</code> → 7-char ID banao (unique ID ka base-62 — Ch. &#8542; dekho), content object storage mein,
+metadata DB mein, link return. <code>GET /{id}</code> → cache → DB → object storage. Immutable data = cache karna bahut aasaan;
+popular pastes CDN ke peeche.
+<strong>Tum:</strong> "Kya yeh sahi lag raha hai? Aage main ID generation aur expiry mein jaana chahunga."</p>
+</details>
+<details class="example">
+<summary>Step 3 — Deep dive (18 min)</summary>
+<ul>
+<li><strong>ID generation:</strong> random 7-char base-62 ka space 3.5 T hai; 1.8 B IDs/saal ke saath har insert pe collision ka chance
+  bahut kam par zero nahi → unique numeric ID (Snowflake/ticket range) lo phir base-62 encode karo → <strong>na collision, na DB check</strong>.</li>
+<li><strong>Expiry:</strong> <code>expires_at</code> store karo; reads isse check karein (lazy delete); daily batch job expired rows aur S3 objects delete kare.
+  Bulk cleanup ke liye S3 lifecycle rules.</li>
+<li><strong>Hot pastes:</strong> social media pe share hua paste minutes mein 100K hits laata hai → CDN, <code>Cache-Control: max-age</code> =
+  min(bachi hui expiry, 1 din).</li>
+<li><strong>Abuse:</strong> per IP creates pe rate limit (Ch. 4); size limit LB pe.</li>
+</ul>
+</details>
+<details class="example">
+<summary>Step 4 — Wrap up (4 min)</summary>
+<p>"Recap: stateless paste service, metadata paste_id se keyed sharded KV/SQL store mein, content object storage mein,
+reads ke liye cache + CDN. 10× pe bottleneck metadata writes honge → paste_id se shard. Failure: object storage slow ho
+toh cache/CDN se serve karenge; p99 read latency, 4xx/5xx, cache hit ratio monitor karenge. Aage async event stream
+se analytics add karunga."</p>
+</details>
+<hr />
+<h2 id="kaam-ke-phrases">Kaam ke phrases<a class="headerlink" href="#kaam-ke-phrases" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Kuch aisa bolo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shuruaat</td>
+<td>"Design karne se pehle main kuch requirements clarify karna chahunga."</td>
+</tr>
+<tr>
+<td>Assume karna</td>
+<td>"Main X maan raha hoon — likh leta hoon; galat ho toh batana."</td>
+</tr>
+<tr>
+<td>Chunna</td>
+<td>"Yahan do options hain: A aur B. A se milta hai…, keemat hai…; hamara load read-heavy hai toh main A lunga."</td>
+</tr>
+<tr>
+<td>Check-in</td>
+<td>"Itni detail theek hai, ya kahin aur gehraai mein jaun?"</td>
+</tr>
+<tr>
+<td>Atak gaye</td>
+<td>"Yahan best approach ke baare mein sure nahi hoon — zor se reason karke dekhta hoon."</td>
+</tr>
+<tr>
+<td>Hint lena</td>
+<td>"Achha point hai — isse cheezein badalti hain. Yeh hissa revise karta hoon."</td>
+</tr>
+<tr>
+<td>Wrap up</td>
+<td>"Main design aur main trade-offs recap karta hoon, phir bottlenecks pe baat karte hain."</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Scope likho</summary>
+<p>Prompt: <em>"Ek shehar ke liye parking-lot reservation system design karo."</em> 6 clarifying questions aur ek requirements
+sheet likho (FR, NFR, out of scope) assumed numbers ke saath.</p>
+<p><strong>Sample answer.</strong> Sawaal: Users kaun — drivers, lot operators, dono? Pehle se reserve ya sirf real-time? Kitne lots/spots?
+Peak times? Payments scope mein? Kya reserved spot guaranteed hona chahiye (double booking nahi)?
+<em>FR:</em> location/time se spots search, reserve, cancel, pay; operators inventory manage karein. <em>NFR:</em> <strong>booking pe strong
+consistency</strong> (double-booking nahi), search thoda stale chalega, p99 search &lt; 300 ms. <em>Out:</em> dynamic pricing, navigation.
+<em>Numbers:</em> 2,000 lots × 200 spots = 400K spots; 1M reservations/din → ~12 writes/sec avg, office hours mein 10× peaks.</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Red flags pakdo</summary>
+<p>Ek candidate ko "internal company tool ke liye URL shortener (5K employees)" diya gaya, aur woh Kafka, Cassandra,
+20 microservices ke saath Kubernetes, aur multi-region active-active propose karta hai. Kya feedback doge?</p>
+<p><strong>Answer.</strong> Bataye scale ke liye over-engineering (5K users → kuch QPS). Ek service + Postgres + chhota cache + backups
+kaafi hai. Complexity cost aur failure modes badhaati hai. Pehle estimate karna chahiye tha aur design ko numbers ke hisaab
+se scale karna chahiye tha, saath mein batana ki usage badhe toh kaise evolve karenge.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Deep dives chuno</summary>
+<p>"Concerts ke liye ticket-booking system (BookMyShow jaisa) design karo" mein kaunse 2–3 areas ka deep dive karoge aur kyun?</p>
+<p><strong>Answer.</strong> (1) <strong>Seat inventory &amp; concurrency</strong> — double booking rokna (row locks / optimistic concurrency / expiry ke saath
+temporary holds). (2) <strong>Flash-sale traffic</strong> — bada concert khulte hi virtual waiting room / queue aur rate limiting.
+(3) <strong>Payment flow &amp; idempotency</strong> — hold → pay → confirm, timeouts ke saath jo hold release kar dein.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Interviewer kya evaluate karta hai aur top 5 red flags bata sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 45-min round ke liye 4 steps rough time budgets ke saath bol sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Features, scale, quality aur constraints ka mental question bank hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Design se pehle board pe requirements (FR / NFR / out of scope / estimates) likhta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Deep-dive topics kaise chunte hain aur seniority se kaise badalte hain, pata hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Bottlenecks, failures, monitoring aur agle 10× scale ke saath wrap up kar sakta hoon.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../../building-blocks/04-rate-limiter/">Aage: 04 · Rate Limiter <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../02-back-of-the-envelope/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 02 · Back-of-the-Envelope Estimation">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                02 · Back-of-the-Envelope Estimation
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../building-blocks/04-rate-limiter/" class="md-footer__link md-footer__link--next" aria-label="Next: 04 · Rate Limiter">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                04 · Rate Limiter
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

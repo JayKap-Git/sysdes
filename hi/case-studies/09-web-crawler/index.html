@@ -1,0 +1,2363 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Scalable, polite web crawler design — web graph pe BFS, priority aur politeness queues waala URL frontier, robots.txt, DNS caching, fingerprints aur Bloom filters se content aur URL dedup, spider traps aur freshness.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/hi/case-studies/09-web-crawler/">
+      
+      
+        <link rel="prev" href="../08-url-shortener/">
+      
+      
+        <link rel="next" href="../10-notification-system/">
+      
+      
+        
+          <link rel="alternate" href="../../../case-studies/09-web-crawler/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>09 · Web Crawler - SysDes — System Design, Gehraai se</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#09-web-crawler-design-karo" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-header__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Gehraai se
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              09 · Web Crawler
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../case-studies/09-web-crawler/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Yahan se shuru karo
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations (Neev)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../building-blocks/04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revision & Aage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-nav__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Gehraai se
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Yahan se shuru karo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations (Neev)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations (Neev)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-akhbaar-ke-stringers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: akhbaar ke stringers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crawl-loop-step-by-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crawl loop, step by step
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bfs-dfs-nahi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BFS, DFS nahi
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-frontier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        URL frontier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#html-downloader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTML downloader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extensibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extensibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dedup-detail-mein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dedup detail mein
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problematic-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problematic content
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-aur-kya" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up — aur kya
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revision & Aage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revision & Aage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary (Shabdkosh)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · Seekhna Jaari Hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-akhbaar-ke-stringers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: akhbaar ke stringers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crawl-loop-step-by-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crawl loop, step by step
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bfs-dfs-nahi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BFS, DFS nahi
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-frontier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        URL frontier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#html-downloader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTML downloader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extensibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extensibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dedup-detail-mein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dedup detail mein
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problematic-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problematic content
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-aur-kya" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up — aur kya
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/case-studies/09-web-crawler.hi.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="09-web-crawler-design-karo">09 · Web Crawler Design karo<a class="headerlink" href="#09-web-crawler-design-karo" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 45 min read</span>
+<span class="hot">🔥 Queueing, dedup aur politeness ki soch test karta hai</span>
+<span>Book: Chapter 9</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>Crawler baar-baar: <strong>URL lo → download → parse → content dedupe → links nikaalo → filter → URLs dedupe → enqueue</strong>. Yeh web graph pe <strong>BFS</strong> hai.</li>
+<li>Dil hai <strong>URL frontier</strong>: <em>front queues</em> <strong>priority</strong> decide karti hain (kaunse pages zyada important), <em>back queues</em> <strong>politeness</strong> enforce karti hain (har queue mein ek host, same host ki requests ke beech delay).</li>
+<li><strong>robots.txt</strong> ki izzat karo (cached), <strong>DNS</strong> cache karo (slow hai), crawlers ko <strong>geographically</strong> baanto, chhote <strong>timeouts</strong> rakho.</li>
+<li><strong>Content</strong> ko fingerprints/hashes se dedupe karo (near-duplicates ke liye SimHash) aur <strong>URLs</strong> ko <strong>Bloom filter</strong> / hash set se.</li>
+<li><strong>Spider traps</strong> (infinite URL spaces), redundant/bekaar content se bacho, aur pages ko <strong>fresh</strong> rakho — jitna badalte hain utna recrawl.</li>
+</ul>
+</div>
+<h2 id="intuition-akhbaar-ke-stringers">Intuition: akhbaar ke stringers<a class="headerlink" href="#intuition-akhbaar-ke-stringers" title="Permanent link">&para;</a></h2>
+<p>Socho ek akhbaar desh ka <em>har</em> local notice board padhna chahta hai. Woh stringers ko shuruaati addresses ki list deke bhejta hai. Har
+board pe woh notices ki photo lete hain, likhe hue <strong>naye addresses</strong> note karte hain, aur office ki to-visit list mein jod dete hain. Rules:</p>
+<ul>
+<li>Ek hi chhote office pe <strong>ek saath das stringers</strong> mat bhejo — bahar nikaal denge (<em>politeness</em>).</li>
+<li><strong>Important boards</strong> (shehar ka centre) door ke gaon se zyada baar dekho (<em>priority, freshness</em>).</li>
+<li>Jo notice pehle se hai uski dobara photo mat lo (<em>content dedup</em>), aur jo address pehle se list mein hai wahan dobara mat jao (<em>URL dedup</em>).</li>
+<li>Kuch buildings pe likha hai "peeche waale kamre mein photo mana hai" (<em>robots.txt</em>).</li>
+<li>Us building se bacho jiski seedhiyan kabhi khatam nahi hoti (<em>spider trap</em>).</li>
+</ul>
+<hr />
+<h2 id="step-1-scope">Step 1 · Scope<a class="headerlink" href="#step-1-scope" title="Permanent link">&para;</a></h2>
+<p>Crawler kis liye hai? Isse design badalta hai:</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Example</th>
+<th>Zor kis pe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Search engine indexing</strong></td>
+<td>Googlebot, Bingbot</td>
+<td>Scale, freshness, priority</td>
+</tr>
+<tr>
+<td><strong>Web archiving</strong></td>
+<td>Internet Archive, national libraries</td>
+<td>Completeness, long-term storage</td>
+</tr>
+<tr>
+<td><strong>Web mining / data collection</strong></td>
+<td>Market research, training datasets</td>
+<td>Targeted domains, extraction</td>
+</tr>
+<tr>
+<td><strong>Web monitoring</strong></td>
+<td>Brand/copyright/price monitoring</td>
+<td>Specific sites, recrawl frequency</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition example">
+<p class="admonition-title">Clarifying baatcheet</p>
+<p><strong>Tum:</strong> Crawl kis liye hai? — <strong>Interviewer:</strong> Search engine index ke liye.
+<strong>Tum:</strong> Kitne pages, kitni baar? — <strong>I:</strong> Mahine mein lagbhag 2 billion pages.
+<strong>Tum:</strong> Content types? — <strong>I:</strong> Abhi sirf HTML.
+<strong>Tum:</strong> Naye/edit hue pages bhi? — <strong>I:</strong> Haan, freshness matter karti hai.
+<strong>Tum:</strong> Pages store karne hain? Kitne time? — <strong>I:</strong> Raw HTML 3 saal.
+<strong>Tum:</strong> Duplicate pages? — <strong>I:</strong> Duplicate content skip karo.</p>
+</div>
+<p><strong>Achhe crawler ki khoobiyan:</strong></p>
+<ul>
+<li><strong>Scalability</strong> — billions of pages → massively parallel.</li>
+<li><strong>Robustness</strong> — web toote HTML, jawab na dene waale servers, crashes, malicious links se bhara hai. Girna nahi hai.</li>
+<li><strong>Politeness</strong> — kisi site pe thode time mein bahut requests mat thoko.</li>
+<li><strong>Extensibility</strong> — naya content type (images, PDFs) jodna plug-in hona chahiye, redesign nahi.</li>
+</ul>
+<h3 id="estimates">Estimates<a class="headerlink" href="#estimates" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pages/mahina</td>
+<td>2 B</td>
+</tr>
+<tr>
+<td>Average download rate</td>
+<td>2 B / (30 × 86,400) ≈ <strong>770 pages/s</strong></td>
+</tr>
+<tr>
+<td>Peak (×2)</td>
+<td>~<strong>1,500 pages/s</strong></td>
+</tr>
+<tr>
+<td>Average page size</td>
+<td>~300 KB</td>
+</tr>
+<tr>
+<td>Storage/mahina</td>
+<td>2 B × 300 KB = <strong>600 TB</strong></td>
+</tr>
+<tr>
+<td>3 saal ka storage</td>
+<td>600 TB × 36 ≈ <strong>21.6 PB</strong> (compress karo! HTML 5–10× compress hota hai)</td>
+</tr>
+<tr>
+<td>Download bandwidth</td>
+<td>1,500 × 300 KB ≈ 450 MB/s ≈ peak pe <strong>3.6 Gbps</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="step-2-high-level-design">Step 2 · High-level design<a class="headerlink" href="#step-2-high-level-design" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+    SEED[Seed URLs] --&gt; FR[[URL Frontier]]
+    FR --&gt; DL[HTML Downloader]
+    DNS[(DNS resolver&lt;br/&gt;+ cache)] --- DL
+    ROB[(robots.txt cache)] --- DL
+    DL --&gt; PAR[Content parser]
+    PAR --&gt; CS{Content seen?}
+    CS --&gt;|duplicate| X1[discard]
+    CS --&gt;|naya| ST[(Content storage)]
+    CS --&gt;|naya| LE[Link extractor]
+    LE --&gt; UF[URL filter]
+    UF --&gt; US{URL seen?}
+    US --&gt;|dekha hua| X2[discard]
+    US --&gt;|naya| UST[(URL storage)]
+    US --&gt;|naya| FR</code></pre>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Kaam</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Seed URLs</strong></td>
+<td>Shuruaati points. Aise chuno ki web achhe se cover ho — jaise <strong>locality</strong> se (har desh ki popular sites) ya <strong>topic</strong> se (news, shopping, sports, education…).</td>
+</tr>
+<tr>
+<td><strong>URL Frontier</strong></td>
+<td>Download karne waali list (sabse simple mein FIFO — par practice mein kahin smarter, neeche dekho).</td>
+</tr>
+<tr>
+<td><strong>HTML Downloader</strong></td>
+<td>HTTP pe pages laata hai.</td>
+</tr>
+<tr>
+<td><strong>DNS Resolver</strong></td>
+<td>Hostnames ko IPs mein badalta hai (cached).</td>
+</tr>
+<tr>
+<td><strong>Content Parser</strong></td>
+<td>HTML parse aur validate karta hai; kharab pages drop. Alag component rakho taaki slow parsing downloads block na kare.</td>
+</tr>
+<tr>
+<td><strong>Content Seen?</strong></td>
+<td>Woh pages pakadta hai jinka content pehle se hai — web ka bada hissa duplicate hai (mirrors, syndication, printer-friendly copies). Poora text nahi, <strong>hashes</strong> compare karo.</td>
+</tr>
+<tr>
+<td><strong>Content Storage</strong></td>
+<td>Zyada tar content disk pe (blob storage, compressed); popular content memory mein cached.</td>
+</tr>
+<tr>
+<td><strong>Link Extractor</strong></td>
+<td>HTML se links nikaalta hai aur relative links ko absolute banata hai (<code>/about</code> → <code>https://site.in/about</code>).</td>
+</tr>
+<tr>
+<td><strong>URL Filter</strong></td>
+<td>Unwanted URLs hatata hai: kuch file types/extensions, error-prone links, blacklisted sites.</td>
+</tr>
+<tr>
+<td><strong>URL Seen?</strong></td>
+<td>Pehle visit ya queue hue URLs skip karta hai (loops aur repeat kaam se bachata hai). Bloom filter ya hash table.</td>
+</tr>
+<tr>
+<td><strong>URL Storage</strong></td>
+<td>Visit hue URLs ka record.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="crawl-loop-step-by-step">Crawl loop, step by step<a class="headerlink" href="#crawl-loop-step-by-step" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Seed URLs frontier mein daalo.</li>
+<li>Downloader frontier se URLs leta hai, DNS resolve karta hai, page download karta hai.</li>
+<li>Parser parse karke check karta hai ki valid hai.</li>
+<li>"Content seen?" — exact same content hai toh drop.</li>
+<li>Warna store karo aur link extractor ko bhejo.</li>
+<li>Nikle links URL filter se guzarte hain.</li>
+<li>"URL seen?" — naye URLs URL storage aur frontier mein; jaane-pehchaane drop.</li>
+<li>Repeat.</li>
+</ol>
+<hr />
+<h2 id="step-3-deep-dive">Step 3 · Deep dive<a class="headerlink" href="#step-3-deep-dive" title="Permanent link">&para;</a></h2>
+<h3 id="bfs-dfs-nahi">BFS, DFS nahi<a class="headerlink" href="#bfs-dfs-nahi" title="Permanent link">&para;</a></h3>
+<p>Web ek directed graph hai: pages nodes, links edges. <strong>DFS</strong> ek site mein bewajah gehraai tak ghus jaata hai aur kho sakta hai. <strong>BFS</strong>
+(FIFO queue) usual base hai. Par plain BFS ki do problems:</p>
+<ol>
+<li><strong>Impoliteness.</strong> Page ke zyada tar links <strong>same host</strong> ki taraf jaate hain. <code>wiki.example.org/...</code> URLs se bhari FIFO queue matlab
+   hamare saare parallel workers ek saath us ek host pe gir padte hain — practically DoS.</li>
+<li><strong>Priority nahi.</strong> Random forum post aur badi news homepage ko barabar treatment. Hume important aur jaldi badalne waale pages pehle chahiye.</li>
+</ol>
+<p>URL frontier dono fix karta hai.</p>
+<h3 id="url-frontier">URL frontier<a class="headerlink" href="#url-frontier" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TB
+    IN[Naye URLs] --&gt; PZ[Prioritizer]
+    PZ --&gt; F1[["Front queue f1&lt;br/&gt;(sabse high priority)"]]
+    PZ --&gt; F2[["f2"]]
+    PZ --&gt; Fn[["fn (sabse low)"]]
+    F1 &amp; F2 &amp; Fn --&gt; QS["Front queue selector&lt;br/&gt;(random, high priority ki taraf jhuka)"]
+    QS --&gt; BR["Back queue router&lt;br/&gt;(host → queue table use karta hai)"]
+    MT[("Mapping table&lt;br/&gt;host → back queue")] --- BR
+    BR --&gt; B1[["Back queue b1&lt;br/&gt;sirf news.example.in"]]
+    BR --&gt; B2[["b2&lt;br/&gt;sirf shop.example.com"]]
+    BR --&gt; Bn[["bn&lt;br/&gt;sirf some-blog.in"]]
+    B1 --&gt; W1[Worker 1]
+    B2 --&gt; W2[Worker 2]
+    Bn --&gt; Wn[Worker n]</code></pre>
+<p><strong>Front queues → priority.</strong> Ek <strong>prioritizer</strong> har URL ko score deta hai — PageRank/link popularity, site traffic, update frequency, root se
+depth ke hisaab se — aur n front queues mein se ek mein daalta hai (f1 = sabse high). <strong>Queue selector</strong> front queues se random chunta hai
+par <strong>high priority ki taraf jhuka hua</strong>, taaki important pages pehle jaayein aur low-priority waale bhi aage badhte rahein.</p>
+<p><strong>Back queues → politeness.</strong> Har back queue mein <strong>sirf ek host</strong> ke URLs. <strong>Mapping table</strong> <code>host → back queue</code> record karti hai. Har back
+queue ko <strong>ek worker thread</strong> khaali karta hai, jo ek baar mein ek page download karta hai aur requests ke beech <strong>delay</strong> karta hai (jaise
+kuch seconds, ya robots.txt mein jo <code>Crawl-delay</code> likha ho). Toh kisi host ko hamari taraf se kabhi ek se zyada concurrent request nahi milti.</p>
+<table>
+<thead>
+<tr>
+<th>Mapping table</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>news.example.in</code></td>
+<td>b1</td>
+</tr>
+<tr>
+<td><code>shop.example.com</code></td>
+<td>b2</td>
+</tr>
+<tr>
+<td>…</td>
+<td>…</td>
+</tr>
+<tr>
+<td><code>some-blog.in</code></td>
+<td>bn</td>
+</tr>
+</tbody>
+</table>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cm">/** Minimal politeness scheduler: har host ki ek queue, same host ke fetches ke beech min delay. */</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">final</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PoliteFrontier</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Deque</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">perHost</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">PriorityQueue</span><span class="o">&lt;</span><span class="n">Map</span><span class="p">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Long</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">ready</span><span class="w"> </span><span class="o">=</span><span class="w">      </span><span class="c1">// host → sabse jaldi agla-fetch time</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">        </span><span class="k">new</span><span class="w"> </span><span class="n">PriorityQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">Map</span><span class="p">.</span><span class="na">Entry</span><span class="p">.</span><span class="na">comparingByValue</span><span class="p">());</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">delayMs</span><span class="p">;</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="n">PoliteFrontier</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">delayMs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">delayMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">delayMs</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">url</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="na">net</span><span class="p">.</span><span class="na">URI</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">url</span><span class="p">).</span><span class="na">getHost</span><span class="p">();</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="n">Deque</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">perHost</span><span class="p">.</span><span class="na">computeIfAbsent</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayDeque</span><span class="o">&lt;&gt;</span><span class="p">());</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">q</span><span class="p">.</span><span class="na">isEmpty</span><span class="p">())</span><span class="w"> </span><span class="n">ready</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">Map</span><span class="p">.</span><span class="na">entry</span><span class="p">(</span><span class="n">host</span><span class="p">,</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()));</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">        </span><span class="n">q</span><span class="p">.</span><span class="na">addLast</span><span class="p">(</span><span class="n">url</span><span class="p">);</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="cm">/** Agla URL jiske host ko abhi hit karna allowed hai, ya null. */</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">next</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">        </span><span class="n">Map</span><span class="p">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Long</span><span class="o">&gt;</span><span class="w"> </span><span class="n">head</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ready</span><span class="p">.</span><span class="na">peek</span><span class="p">();</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">head</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">head</span><span class="p">.</span><span class="na">getValue</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">        </span><span class="n">ready</span><span class="p">.</span><span class="na">poll</span><span class="p">();</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">        </span><span class="n">Deque</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">perHost</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">head</span><span class="p">.</span><span class="na">getKey</span><span class="p">());</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="na">pollFirst</span><span class="p">();</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">q</span><span class="p">.</span><span class="na">isEmpty</span><span class="p">())</span><span class="w"> </span><span class="n">ready</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">Map</span><span class="p">.</span><span class="na">entry</span><span class="p">(</span><span class="n">head</span><span class="p">.</span><span class="na">getKey</span><span class="p">(),</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">delayMs</span><span class="p">));</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">url</span><span class="p">;</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Freshness.</strong> Pages badalte hain; recrawl karna padta hai. Sab kuch recrawl karna barbaadi hai, toh:</p>
+<ul>
+<li>Har page ki <strong>update history</strong> ke hisaab se recrawl (jo page pichli 3 visits mein badla, use jaldi dobara dekho).</li>
+<li><strong>Important</strong> pages zyada baar recrawl.</li>
+<li>HTTP conditional requests (<code>If-Modified-Since</code> / <code>ETag</code>) use karo taaki unchanged pages ka kharcha bas ek chhota sa <code>304 Not Modified</code> ho.</li>
+</ul>
+<p><strong>Frontier storage.</strong> Saikdon million URLs memory mein nahi aate, aur pure disk slow hai. <strong>Hybrid</strong>: frontier ka zyada hissa disk pe,
+enqueue/dequeue ke liye in-memory <strong>buffers</strong> jo batches mein flush/refill hote hain.</p>
+<h3 id="html-downloader">HTML downloader<a class="headerlink" href="#html-downloader" title="Permanent link">&para;</a></h3>
+<p><strong>robots.txt</strong> (Robots Exclusion Protocol) crawlers ko batata hai kya fetch kar sakte hain. Crawl karne se <strong>pehle</strong> har host ka laao, cache
+karo (roz refresh), aur maano:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>User-agent: *
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Disallow: /cart/
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Disallow: /search
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Crawl-delay: 5
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>User-agent: MyCrawlerBot
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>Allow: /
+</span></code></pre></div>
+<p><strong>Downloads tez banana.</strong> ~1,500 pages/s pe downloader zyada time <em>wait</em> karta hai, toh fayda waits hatane se aata hai:</p>
+<table>
+<thead>
+<tr>
+<th>Wait</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DNS lookups (10–200 ms, aksar blocking)</td>
+<td>Background mein refresh hone waala local DNS cache; async resolver</td>
+</tr>
+<tr>
+<td>Slow ya mare hue servers</td>
+<td>Aggressive connect/read timeouts (kuch seconds) aur aage badho</td>
+</tr>
+<tr>
+<td>Lambe network paths</td>
+<td>Kai regions mein crawler fleets; har ek apne paas ke hosts crawl kare</td>
+</tr>
+<tr>
+<td>Har request pe ek thread</td>
+<td>Async HTTP clients jo kai hosts ke across hazaaron connections rakhein</td>
+</tr>
+<tr>
+<td>Ek machine ki capacity</td>
+<td>Kai crawler machines; URL space ko consistent hashing se <strong>host ke hisaab se</strong> baanto, taaki har host ka politeness state exactly ek machine pe rahe</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Zinda rehna.</strong> Crashes, kharab HTML aur dushman pages maan ke chalo:</p>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Bachav</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Crawler machine mar gayi</td>
+<td>Uske hosts padosiyon pe re-hash; frontier aur seen-sets durable storage mein checkpoint, toh kaam resume hota hai, restart nahi</td>
+</tr>
+<tr>
+<td>Page parser ko crash kar deta hai</td>
+<td>Size aur time limits waale isolated worker mein parse; sab catch karo, log karo, skip karo</td>
+</tr>
+<tr>
+<td>Kachra data</td>
+<td>Store karne se pehle validate (content type, encoding, size)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="extensibility">Extensibility<a class="headerlink" href="#extensibility" title="Permanent link">&para;</a></h3>
+<p>Downloader ke baad sab kuch "page fetched" event ke <strong>subscribers</strong> ka set samjho. Core loop (parse → dedupe → links nikaalo) ek subscriber
+hai; nayi capabilities aur subscribers ki tarah judti hain, core ko chhue bina. Jaise ek <strong>PDF text extractor</strong> jo documents index kare, ya
+ek <strong>structured-data extractor</strong> jo schema.org markup se product prices aur ratings nikaale:</p>
+<pre class="mermaid"><code>flowchart LR
+    DL[Downloader] --&gt; EV[["page-fetched events"]]
+    EV --&gt; CORE["Core: parse → dedupe → links nikaalo"]
+    EV --&gt; PDF["PDF text extractor&lt;br/&gt;(plug-in)"]
+    EV --&gt; SD["schema.org product extractor&lt;br/&gt;(plug-in)"]</code></pre>
+<h3 id="dedup-detail-mein">Dedup detail mein<a class="headerlink" href="#dedup-detail-mein" title="Permanent link">&para;</a></h3>
+<p><strong>Content seen?</strong> Har page body ko hash karo (jaise 64-bit fingerprint) aur set mein dekho. Exact hashes exact duplicates pakadte hain.
+<strong>Near-duplicates</strong> (same article, alag ads/timestamps) ke liye <strong>SimHash</strong> ya <strong>MinHash</strong>: milte-julte documents ke fingerprints kuch hi bits
+mein alag hote hain, toh chhoti Hamming distance waale pages flag karo.</p>
+<p><strong>URL seen?</strong> Pehle URLs normalise karo (host lower-case, default ports hatao, query params sort karo, fragments <code>#…</code> aur <code>utm_*</code> jaise
+tracking params hatao). Phir <strong>Bloom filter</strong> check karo: 10 billion URLs × ~10 bits ≈ 12.5 GB memory, 1% false positives (matlab kabhi-kabhi
+aisa URL skip ho jaayega jo asal mein nahi dekha — crawler ke liye chalega).</p>
+<h3 id="problematic-content">Problematic content<a class="headerlink" href="#problematic-content" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Redundant content</strong> — content dedup sambhalta hai.</li>
+<li><strong>Spider traps</strong> — pages jo infinite URLs banate hain, jaise calendar links (<code>/calendar?month=…</code> hamesha) ya <code>site.in/a/b/c/a/b/c/…</code>.
+  Bachav: max URL length, har host pe max depth, har crawl mein har host ke max pages, repeat hote path patterns detect karna, aur jaane-maane
+  traps ke liye manual blacklists.</li>
+<li><strong>Data noise</strong> — ads, code snippets, spam pages; jahan ho sake filter karo.</li>
+</ul>
+<hr />
+<h2 id="step-4-wrap-up-aur-kya">Step 4 · Wrap-up — aur kya<a class="headerlink" href="#step-4-wrap-up-aur-kya" title="Permanent link">&para;</a></h2>
+<p>Time bache toh yeh dhaage kheencho:</p>
+<ul>
+<li><strong>JavaScript-heavy sites.</strong> Kai pages apne links aur content browser mein banate hain. Headless-browser renderers ka pool sambhal sakta hai, par rendering plain fetch se 10–100× mehenga — sirf zaroori sites route karo.</li>
+<li><strong>Quantity se zyada quality.</strong> Filter stage pe spam/low-quality classifier storage, bandwidth aur index noise bachata hai.</li>
+<li><strong>Stores scale karna.</strong> URL store aur content store ko kisi bhi bade dataset ki tarah sharding (host ya URL hash se) aur replication chahiye (Chapters 1 aur 6).</li>
+<li><strong>Operations.</strong> Pages/s, har host ka error rate, robots.txt denials, frontier size aur freshness lag ke dashboards; alerts jab ek host ka URL count phoot jaaye (trap) ya download rate gire.</li>
+<li><strong>Achha naagrik banna.</strong> Bot ko saaf <code>User-Agent</code> aur contact URL ke saath identify karo, <code>429</code>/<code>503</code> pe peeche hato, aur site owners ki requests maano.</li>
+</ul>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>Kaise ensure karoge ki do crawler machines ek saath same host ko hit na karein?</summary>
+<p>URL nahi, <strong>host</strong> se partition karo: <code>hash(host) → crawler machine</code> (consistent hashing taaki machines join/leave kar sakein). Phir host ke
+saare URLs ek machine pe girte hain, jo har host ki ek back queue rakhti hai aur delay locally enforce karti hai — machines ke beech koi
+coordination nahi chahiye.</p>
+</details>
+<details class="question">
+<summary>Tumhara crawler 1,000 pages/s download kar raha hai par CPU idle hai. Bottleneck kahan hai?</summary>
+<p>Shayad I/O waits: DNS lookups (cache nahi, ya synchronous resolver), bina timeouts ke slow servers, ya bahut kam concurrent connections.
+Fixes: DNS cache + async resolver, aggressive timeouts, async/non-blocking HTTP clients jo kai hosts ke across hazaaron concurrent
+connections rakhein, aur check karo ki politeness queues workers ko bhookha to nahi rakh rahi (frontier mein bahut kam alag hosts).</p>
+</details>
+<details class="question">
+<summary>Kaunse URLs pehle crawl karne hain, yeh kaise prioritise karoge?</summary>
+<p>Score = f(page importance, change rate, staleness). Importance link-based rank (PageRank), domain authority aur traffic se; change rate
+pichli crawl history se; staleness = aakhri crawl se beeta time. Score ko front queues pe map karo aur selector ko high-priority queues ki
+taraf jhukao.</p>
+</details>
+<details class="question">
+<summary>Unchanged pages dobara download karne se kaise bachoge?</summary>
+<p><code>If-Modified-Since</code> / <code>If-None-Match</code> (ETag) ke saath conditional GETs → server bina body ke <code>304 Not Modified</code> deta hai. Jo servers yeh
+support nahi karte, unke liye download ke baad content fingerprint compare karo aur reprocessing skip karo.</p>
+</details>
+<details class="question">
+<summary>Aisa 'spider trap' jo kabhi pehle nahi dekha, use kaise handle karoge?</summary>
+<p>Generic limits zyada tar pakad lete hain: URL length cap, har host pe depth cap, har crawl cycle mein har host ka page budget, aur repeat
+hote path segments ya sirf counter badalne waale query parameters ka detection. Jab ek host ka discovered-URL count uske PageRank ke muqable
+phoot jaaye toh alert karo — phir insaan pattern blacklist kar sakta hai.</p>
+</details>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Politeness throughput</summary>
+<p>Tumhara politeness rule hai "har host pe har 2 second mein ek request". 1,500 pages/s sustain karne ke liye frontier mein kisi bhi pal
+kam se kam kitne alag hosts active hone chahiye?</p>
+<p><strong>Solution.</strong> Har host max 0.5 pages/s deta hai → ≥ 1,500 / 0.5 = <strong>3,000 active hosts</strong> chahiye (practice mein zyada, kyunki downloads mein
+time lagta hai aur kuch hosts slow hain). Isliye frontier ko sirf zyada URLs nahi, zyada hosts "garam" rakhne chahiye.</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Bloom filter memory</summary>
+<p>5 billion unique URLs expected hain aur 1% false positives chalenge. Bloom filter ki memory?</p>
+<p><strong>Solution.</strong> ~9.6 bits per element → 5 × 10⁹ × 9.6 ≈ 4.8 × 10¹⁰ bits ≈ <strong>6 GB</strong>. Ek machine ki RAM mein, ya frontier ke saath host se shard karo.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Focused crawler design karo</summary>
+<p>Ek crawler design karo jo 50,000 e-commerce product pages ko har ghante price changes ke liye dekhe. Search crawler se kya alag hai?</p>
+<p><strong>Solution.</strong> Discovery nahi (fixed URL list) → na link extraction, na URL-seen set. Frontier = agle due time se keyed scheduler. Politeness
+ab bhi zaroori (host se group, robots aur rate limits maano). Conditional GETs, sirf price nikaalo (har site ka selector, ya JS-heavy pages
+ke liye headless rendering), time series store karo, changes pe alert. 50K/ghanta ≈ 14 req/s — bahut chhota.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Crawler use cases aur chaar properties bata sakta hoon: scalable, robust, polite, extensible.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Crawl ke liye QPS, storage aur bandwidth estimate kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Pipeline bana ke har component samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Samjha sakta hoon ki plain BFS impolite aur unprioritised kyun hai, aur front/back queues kaise fix karti hain.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> robots.txt, DNS caching, locality, timeouts, aur host se partitioning pata hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Content dedup (hash, SimHash) aur URL dedup (normalisation + Bloom filter) samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Spider-trap bachav aur freshness strategies bata sakta hoon.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../10-notification-system/">Aage: 10 · Notification System <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../08-url-shortener/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 08 · URL Shortener">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                08 · URL Shortener
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../10-notification-system/" class="md-footer__link md-footer__link--next" aria-label="Next: 10 · Notification System">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                10 · Notification System
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

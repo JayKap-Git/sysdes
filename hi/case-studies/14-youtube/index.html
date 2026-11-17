@@ -1,0 +1,2324 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Video platform design — pre-signed URLs se upload, transcoding DAG pipeline, CDNs se adaptive-bitrate streaming (HLS/DASH), metadata, speed aur cost optimisations, security aur error handling.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/hi/case-studies/14-youtube/">
+      
+      
+        <link rel="prev" href="../13-search-autocomplete/">
+      
+      
+        <link rel="next" href="../15-google-drive/">
+      
+      
+        
+          <link rel="alternate" href="../../../case-studies/14-youtube/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>14 · YouTube - SysDes — System Design, Gehraai se</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#14-youtube-design-karo" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-header__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Gehraai se
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              14 · YouTube
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../case-studies/14-youtube/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Yahan se shuru karo
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations (Neev)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../building-blocks/04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revision & Aage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-nav__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Gehraai se
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Yahan se shuru karo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations (Neev)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations (Neev)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-film-distributor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: film distributor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#upload-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streaming-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transcode-kyun-karna" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transcode kyun karna?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transcoding-dag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transcoding DAG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-pe-dag-chalana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scale pe DAG chalana
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uploads-aur-processing-tez-banana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploads aur processing tez banana
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uploads-aur-content-ki-raksha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploads aur content ki raksha
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paisa-kahan-jaata-hai-aur-kam-kaise-kharchein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paisa kahan jaata hai — aur kam kaise kharchein
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jab-cheezein-fail-hon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jab cheezein fail hon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-aur-kya" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up — aur kya
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revision & Aage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revision & Aage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary (Shabdkosh)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · Seekhna Jaari Hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-film-distributor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: film distributor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#upload-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streaming-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transcode-kyun-karna" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transcode kyun karna?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transcoding-dag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transcoding DAG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-pe-dag-chalana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scale pe DAG chalana
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uploads-aur-processing-tez-banana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploads aur processing tez banana
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uploads-aur-content-ki-raksha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploads aur content ki raksha
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paisa-kahan-jaata-hai-aur-kam-kaise-kharchein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paisa kahan jaata hai — aur kam kaise kharchein
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jab-cheezein-fail-hon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jab cheezein fail hon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-aur-kya" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up — aur kya
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/case-studies/14-youtube.hi.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="14-youtube-design-karo">14 · YouTube Design karo<a class="headerlink" href="#14-youtube-design-karo" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 50 min read</span>
+<span class="hot">🔥 Bada, open-ended — upload pipeline + CDN cost pe focus karo</span>
+<span>Book: Chapter 14</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>Do bade flows: <strong>upload</strong> (client → object storage → <strong>transcoding pipeline</strong> → CDN + metadata) aur <strong>streaming</strong> (client ← sabse paas ka <strong>CDN edge</strong>, adaptive bitrate).</li>
+<li><strong>Pre-signed URL</strong> se seedha blob storage pe upload karo; badi files ko chunks mein todo taaki upload <strong>parallel aur resumable</strong> ho.</li>
+<li>Transcoding tasks ka ek <strong>DAG</strong> hai (inspect, kai resolutions/codecs mein encode, thumbnails, watermark, audio), jo queues se workers pe schedule hote hain.</li>
+<li><strong>HLS/DASH</strong> se stream: video kuch-second ke segments mein kai bitrates pe kat-ta hai; player bandwidth badalne pe quality switch karta hai.</li>
+<li>Sabse bada bill <strong>CDN egress</strong> hai. CDN se sirf popular videos, long tail apne storage se; kam dekhe jaane waale videos lazily encode; content regionally rakho.</li>
+</ul>
+</div>
+<h2 id="intuition-film-distributor">Intuition: film distributor<a class="headerlink" href="#intuition-film-distributor" title="Permanent link">&para;</a></h2>
+<p>Ek filmmaker distributor ko ek master print deta hai. Distributor alag formats mein copies banata hai (IMAX, 2K, dubbed version, trailer, poster),
+print mein damage check karta hai, aur copies <strong>darshakon ke paas waale</strong> cinemas tak bhejta hai. Blockbusters har cinema mein jaati hain; art-house
+film sirf kuch mein, aur koi maange toh godown se mangwayi jaati hai.</p>
+<p>Upload = master print dena. Transcoding = saare formats banana. CDN = cinemas. Cost control = art-house films har multiplex mein na bhejna.</p>
+<hr />
+<h2 id="step-1-scope">Step 1 · Scope<a class="headerlink" href="#step-1-scope" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Clarifying baatcheet</p>
+<p><strong>Tum:</strong> Long-form, short vertical clips, ya live? — <strong>Interviewer:</strong> Long-form aur short clips. Live scope se bahar.
+<strong>Tum:</strong> Viewers kahan hain, aur kaunse networks pe? — <strong>I:</strong> Zyada tar India aur South-East Asia, bahut saara patchy mobile data pe.
+<strong>Tum:</strong> Kitna bada? — <strong>I:</strong> Roz 20M viewers, har ek ~40 minute dekhta hai; kisi bhi din ~2% kuch upload karte hain.
+<strong>Tum:</strong> Creators kya upload karte hain? — <strong>I:</strong> Phone aur camera files, zyada tar formats mein, 4 GB tak.
+<strong>Tum:</strong> Kis quality mein stream karein? — <strong>I:</strong> Abhi 144p se 1080p.
+<strong>Tum:</strong> Storage aur CDN banayein ya khareedein? — <strong>I:</strong> Cloud object storage aur commercial CDN use karo.
+<strong>Tum:</strong> Paid/premium content? — <strong>I:</strong> Thoda — batao kaise protect karoge.</p>
+</div>
+<p><strong>Focus:</strong> tez uploads, smooth streaming, quality switching, kam infrastructure cost, high availability, scalability, reliability.</p>
+<h3 id="estimates">Estimates<a class="headerlink" href="#estimates" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uploads</td>
+<td>DAU ka 2% roz 1 video → <strong>400K videos/din</strong> (~5/s)</td>
+</tr>
+<tr>
+<td>Raw upload size</td>
+<td>avg 400 MB → roz <strong>160 TB</strong> originals</td>
+</tr>
+<tr>
+<td>Stored renditions</td>
+<td>saari resolutions milake original ka ~1.5× → roz <strong>~240 TB</strong> aur</td>
+</tr>
+<tr>
+<td>Watch volume</td>
+<td>20M × 40 min = roz 800M minutes; ~2.5 Mbps ≈ 19 MB/min pe → roz <strong>~15 PB</strong> egress</td>
+</tr>
+<tr>
+<td>CDN cost</td>
+<td>$0.01–0.02 per GB pe → <strong>roz $150K–300K</strong> ← sabse bada kharcha</td>
+</tr>
+</tbody>
+</table>
+<p>Yeh numbers pehle hi bata dete hain ki deep dive kahan jaana chahiye: <strong>transcoding pipeline</strong> (correctness + throughput) aur <strong>CDN cost</strong>.</p>
+<hr />
+<h2 id="step-2-high-level-design">Step 2 · High-level design<a class="headerlink" href="#step-2-high-level-design" title="Permanent link">&para;</a></h2>
+<p>Cloud building blocks pe tiko:</p>
+<ul>
+<li>Original aur transcoded videos ke liye <strong>blob/object storage</strong> (S3/GCS).</li>
+<li>Streaming ke liye <strong>CDN</strong>.</li>
+<li>Apne: <strong>API servers</strong>, <strong>metadata DB + cache</strong>, <strong>transcoding pipeline</strong>.</li>
+</ul>
+<pre class="mermaid"><code>flowchart LR
+    C["Client&lt;br/&gt;(phone · browser · TV)"] --&gt;|"video stream"| CDN[(CDN)]
+    C --&gt;|"baaki sab:&lt;br/&gt;feed, upload URL, metadata,&lt;br/&gt;sign-in, likes"| API[API servers]
+    API --&gt; MDB[(Metadata DB)] &amp; MC[(Metadata cache)]</code></pre>
+<h3 id="upload-flow">Upload flow<a class="headerlink" href="#upload-flow" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TB
+    U[User] --&gt;|"1. upload URL maango"| API[API servers]
+    API --&gt;|"2. pre-signed URL"| U
+    U --&gt;|"3. bytes upload (chunked, resumable)"| OS[(Original storage)]
+    U --&gt;|"4. title, description, tags"| API --&gt; MDB[(Metadata DB + cache)]
+    OS --&gt;|"5. new upload event"| TP["Transcoding pipeline"]
+    TP --&gt; TS[(Transcoded storage)]
+    TS --&gt; CDN[(CDN)]
+    TP --&gt;|"6. done event"| CQ[[Completion queue]] --&gt; CH["Completion handler"]
+    CH --&gt;|"status = ready,&lt;br/&gt;rendition URLs"| MDB
+    CH -.-&gt; N["Uploader ko notify"]</code></pre>
+<p>Do cheezein <strong>parallel</strong> mein hoti hain:</p>
+<p><strong>a) Asli video upload</strong></p>
+<ol>
+<li>Client API se upload URL maangta hai. API ek <strong>pre-signed URL</strong> deti hai — time-limited URL jo ek specific object ko seedha object storage mein likhne ki permission deta hai. Hamare API servers gigabytes ko chhoote bhi nahi.</li>
+<li>Client <strong>original storage</strong> mein upload karta hai.</li>
+<li>"New upload" event <strong>transcoding pipeline</strong> chalata hai: video kai formats/resolutions mein badalta hai.</li>
+<li>Transcoded files <strong>transcoded storage</strong> mein aati hain aur <strong>CDN</strong> tak jaati hain / CDN unhe kheenchta hai.</li>
+<li>Transcoding khatam hone pe event <strong>completion queue</strong> pe jaata hai; <strong>completion handlers</strong> metadata DB/cache update karte hain (status = ready, rendition URLs, duration, thumbnails) aur uploader ko batate hain.</li>
+</ol>
+<p><strong>b) Metadata update</strong></p>
+<p>File upload hote hue client title, description, tags, visibility waghera API ko bhejta hai, jo unhe metadata DB aur cache mein likhti hai.</p>
+<h3 id="streaming-flow">Streaming flow<a class="headerlink" href="#streaming-flow" title="Permanent link">&para;</a></h3>
+<p><strong>Streaming</strong> ka matlab player kuch seconds download karke shuru ho jaata hai aur dekhte hue laata rehta hai — pehle poora download nahi. Yeh
+<strong>streaming protocols</strong> pe tika hai:</p>
+<table>
+<thead>
+<tr>
+<th>Protocol</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HLS</strong> (HTTP Live Streaming, Apple)</td>
+<td>Sabse zyada supported; <code>.m3u8</code> playlists + segments</td>
+</tr>
+<tr>
+<td><strong>MPEG-DASH</strong></td>
+<td>Open standard; same idea, <code>.mpd</code> manifest</td>
+</tr>
+<tr>
+<td><strong>Microsoft Smooth Streaming</strong>, Adobe HDS</td>
+<td>Purane / niche</td>
+</tr>
+</tbody>
+</table>
+<p>Adaptive bitrate (ABR) streaming kaise kaam karta hai:</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant P as Player
+    participant CDN as CDN edge (sabse paas)
+    P-&gt;&gt;CDN: GET master.m3u8
+    CDN--&gt;&gt;P: renditions: 240p@400kbps, 480p@1Mbps, 720p@2.5Mbps, 1080p@5Mbps
+    P-&gt;&gt;CDN: GET 720p/segment_001.ts (4 s)
+    P-&gt;&gt;CDN: GET 720p/segment_002.ts
+    Note over P: bandwidth gira (train tunnel mein)
+    P-&gt;&gt;CDN: GET 240p/segment_003.ts
+    Note over P: bandwidth wapas aaya
+    P-&gt;&gt;CDN: GET 720p/segment_004.ts</code></pre>
+<p>Videos har resolution ke liye <strong>2–6 second ke segments</strong> mein kat-te hain; ek <strong>manifest</strong> unhe list karta hai. Player throughput aur buffer level
+naapta hai aur <strong>agle</strong> segment ka bitrate chunta hai — isliye buffering ki jagah beech video quality badalti hai. Segments plain HTTP files hain →
+CDNs ke liye perfect.</p>
+<hr />
+<h2 id="step-3-deep-dive">Step 3 · Deep dive<a class="headerlink" href="#step-3-deep-dive" title="Permanent link">&para;</a></h2>
+<h3 id="transcode-kyun-karna">Transcode kyun karna?<a class="headerlink" href="#transcode-kyun-karna" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Raw video bahut bada hota hai</strong> — high-bitrate camera footage ka ek ghanta saikdon GB ho sakta hai.</li>
+<li><strong>Devices aur browsers alag formats/codecs support karte hain.</strong></li>
+<li><strong>Networks alag hain</strong> — chalti train mein 4G waale ko 360p chahiye; fibre waale ko 1080p+.</li>
+<li><strong>Mobile conditions</strong> beech video badalti hain → switch karne ke liye kai bitrates chahiye.</li>
+</ul>
+<p>Terms: video file ek <strong>container</strong> hai (<code>.mp4</code>, <code>.webm</code>, <code>.mov</code>, <code>.mkv</code>) jisme <strong>codecs</strong> se encoded <strong>streams</strong> hote hain (video: H.264/AVC,
+H.265/HEVC, VP9, AV1; audio: AAC, Opus). Naye codecs (VP9, AV1) 30–50% kam bits mein milti-julti quality dete hain — CDN ka paisa bachta hai — par
+encode karne mein zyada CPU lagta hai aur device support chahiye.</p>
+<h3 id="transcoding-dag">Transcoding DAG<a class="headerlink" href="#transcoding-dag" title="Permanent link">&para;</a></h3>
+<p>Alag creators ko alag processing chahiye (thumbnails, watermarks, sirf HD vs SD…). Kaam ko tasks ke <strong>directed acyclic graph</strong> ki tarah model karo
+(Facebook ka SVE aur Netflix ki pipelines yahi idea use karti hain):</p>
+<pre class="mermaid"><code>flowchart LR
+    O[Original video] --&gt; SPLIT[Split: video · audio · metadata]
+    SPLIT --&gt; INS[Inspect&lt;br/&gt;quality, corruption]
+    INS --&gt; E1[Encode 1080p] &amp; E2[Encode 720p] &amp; E3[Encode 480p] &amp; E4[Encode 240p]
+    INS --&gt; TH[Thumbnails]
+    INS --&gt; WM[Watermark]
+    SPLIT --&gt; AE[Audio encode&lt;br/&gt;AAC / Opus]
+    SPLIT --&gt; MD[Metadata nikaalo&lt;br/&gt;duration, size, codec]
+    E1 &amp; E2 &amp; E3 &amp; E4 &amp; AE --&gt; PKG["Package&lt;br/&gt;HLS/DASH segments + manifest"]
+    PKG --&gt; ASM[Assemble + publish]
+    TH &amp; WM &amp; MD --&gt; ASM</code></pre>
+<ul>
+<li><strong>Inspect</strong> — pakka karo ki video valid hai aur toota nahi.</li>
+<li><strong>Encode</strong> — har resolution/codec/bitrate rendition banao.</li>
+<li><strong>Thumbnails</strong> — auto-generated ya user ne upload kiye.</li>
+<li><strong>Watermark</strong> — pehchaan waali info overlay.</li>
+</ul>
+<h3 id="scale-pe-dag-chalana">Scale pe DAG chalana<a class="headerlink" href="#scale-pe-dag-chalana" title="Permanent link">&para;</a></h3>
+<p>Pipeline ko chaar roles ki tarah socho. Companies inhe alag naam deti hain; matter karta hai har ek ka kaam.</p>
+<pre class="mermaid"><code>flowchart LR
+    OS[(Original storage)] --&gt; PL["① Planner&lt;br/&gt;video ke chunks,&lt;br/&gt;DAG chuno"]
+    PL --&gt; OR["② Orchestrator&lt;br/&gt;kaunse tasks&lt;br/&gt;ready hain, track karo"]
+    OR --&gt; DQ[["③ Dispatch queues&lt;br/&gt;priority &amp; task type se"]]
+    DQ --&gt; W1[Encoder pool] &amp; W2[Thumbnail pool] &amp; W3[Packager pool]
+    W1 &amp; W2 &amp; W3 --&gt; SCR[(Scratch storage)]
+    W3 --&gt; OUT[(Transcoded storage)]
+    W1 &amp; W2 &amp; W3 -.-&gt;|"task khatam"| OR</code></pre>
+<p><strong>① Planner.</strong> Upload padhta hai, use <strong>GOP-aligned chunks</strong> mein kaat-ta hai (GOP — <em>group of pictures</em> — frames ka ek run jo keyframe se shuru
+hota hai aur khud decode ho sakta hai, toh har chunk independently encode ho sakta hai). Config se kaunsa DAG chalana hai yeh bhi chunta hai: naye
+creator ki 15-second clip ko chhota DAG mil sakta hai (360p + 720p + thumbnail); premium upload ko poori ladder, do codecs aur watermark. Chunks
+aur metadata scratch storage mein jaate hain taaki koi bhi task original dobara padhe bina retry ho sake.</p>
+<p><strong>② Orchestrator.</strong> DAG ka state rakhta hai: kaunse tasks ho gaye, kaunse inputs ka wait kar rahe hain, kaunse ready hain. Task khatam hone pe
+dependents ko ready mark karke dispatch ko deta hai. Kyunki har rendition ka har chunk apna task hai, 10-minute video saikdon chhote parallel jobs
+mein phail sakta hai.</p>
+<p><strong>③ Dispatch.</strong> Ready tasks queues mein wait karte hain jo <strong>priority</strong> se bati hain (paying creator ka upload bulk re-encode se pehle) aur <strong>task
+type</strong> se (encode tasks ko bade CPU/GPU boxes chahiye; thumbnails saste hain). Workers sirf un queues se kheenchte hain jinke liye bane hain —
+pull-based dispatch load ko naturally balance karta hai: idle worker bas agla task utha leta hai.</p>
+<p><strong>④ Worker pools.</strong> Stateless processes (encoders, thumbnailers, watermarkers, packagers) jo scratch storage se inputs padhte hain aur outputs
+wapas likhte hain. <strong>Spot/preemptible</strong> machines ke liye ideal: ek gayab ho jaaye toh uska task time out hota hai aur doosra worker utha leta hai.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cm">/** Transcoding DAG chalao: tasks tab runnable jab unki saari dependencies khatam ho jaayein. */</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kt">void</span><span class="w"> </span><span class="nf">runDag</span><span class="p">(</span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">deps</span><span class="p">,</span><span class="w"> </span><span class="n">ExecutorService</span><span class="w"> </span><span class="n">workers</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pending</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ConcurrentHashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">dependents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="n">deps</span><span class="p">.</span><span class="na">forEach</span><span class="p">((</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="n">ds</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">        </span><span class="n">pending</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="n">ds</span><span class="p">.</span><span class="na">size</span><span class="p">());</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">        </span><span class="n">ds</span><span class="p">.</span><span class="na">forEach</span><span class="p">(</span><span class="n">d</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">dependents</span><span class="p">.</span><span class="na">computeIfAbsent</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">()).</span><span class="na">add</span><span class="p">(</span><span class="n">task</span><span class="p">));</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="p">});</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">done</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="n">deps</span><span class="p">.</span><span class="na">size</span><span class="p">());</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="n">Consumer</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">submit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Consumer</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="n">submit</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">workers</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="n">execute</span><span class="p">(</span><span class="n">task</span><span class="p">);</span><span class="w">                                   </span><span class="c1">// encode / thumbnail / watermark …</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">dependents</span><span class="p">.</span><span class="na">getOrDefault</span><span class="p">(</span><span class="n">task</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p">.</span><span class="na">of</span><span class="p">()))</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pending</span><span class="p">.</span><span class="na">merge</span><span class="p">(</span><span class="n">next</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="p">::</span><span class="n">sum</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">submit</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">.</span><span class="na">accept</span><span class="p">(</span><span class="n">next</span><span class="p">);</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">        </span><span class="n">done</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="p">});</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="n">pending</span><span class="p">.</span><span class="na">forEach</span><span class="p">((</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">submit</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">.</span><span class="na">accept</span><span class="p">(</span><span class="n">t</span><span class="p">);</span><span class="w"> </span><span class="p">});</span><span class="w">   </span><span class="c1">// koi dependency nahi → abhi shuru</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="n">done</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="uploads-aur-processing-tez-banana">Uploads aur processing tez banana<a class="headerlink" href="#uploads-aur-processing-tez-banana" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Bottleneck</th>
+<th>Hum kya karte hain</th>
+<th>Kyun kaam karta hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kamzor link pe ek bada upload</td>
+<td>Client file ko parts mein todta hai, kai ek saath upload karta hai, sirf fail hue parts retry, crash ke baad resume</td>
+<td>Toota connection ek part ka nuksaan, poori file ka nahi</td>
+</tr>
+<tr>
+<td>Upload endpoint ki doori</td>
+<td>Regional upload endpoints (aksar CDN POPs) bytes lete hain, phir backbone se storage tak</td>
+<td>Slow "last mile" leg chhota</td>
+</tr>
+<tr>
+<td>Stages ek-doosre ka wait</td>
+<td>Har stage ke beech queue (fetch → encode → package → publish)</td>
+<td>Har stage apne aap scale; slow stage sabko rokne ki jagah backlog banata hai</td>
+</tr>
+<tr>
+<td>Pehle play tak ka time</td>
+<td>Pehle chhota rendition set publish, baaki baad mein</td>
+<td>Viewers upload ke minutes mein dekh sakte hain</td>
+</tr>
+</tbody>
+</table>
+<h3 id="uploads-aur-content-ki-raksha">Uploads aur content ki raksha<a class="headerlink" href="#uploads-aur-content-ki-raksha" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Kaun kya upload kare:</strong> API authenticated user se jude exactly ek object key ke liye short-lived URL sign karti hai — koi kisi aur ka video overwrite nahi kar sakta.</li>
+<li><strong>Kaun kya dekhe:</strong> private aur paid videos expire hone waale <strong>signed CDN URLs/cookies</strong> se serve hote hain.</li>
+<li><strong>Premium content copy hone se rokna:</strong> segments encrypt karo (AES) aur keys <strong>DRM</strong> system se do (Android/Chrome pe Widevine, Apple pe FairPlay, Windows/TVs pe PlayReady); visible ya forensic <strong>watermarks</strong> jodo taaki leaks trace ho sakein.</li>
+</ul>
+<h3 id="paisa-kahan-jaata-hai-aur-kam-kaise-kharchein">Paisa kahan jaata hai — aur kam kaise kharchein<a class="headerlink" href="#paisa-kahan-jaata-hai-aur-kam-kaise-kharchein" title="Permanent link">&para;</a></h3>
+<p>Egress hi bill hai. Views <strong>long tail</strong> follow karte hain, toh popular aur unpopular videos ko alag treat karo:</p>
+<table>
+<thead>
+<tr>
+<th>Lever</th>
+<th>Bachat</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sirf head (popular videos) CDN edges pe; tail origin storage se</td>
+<td>Badi — zyada bytes head ke, zyada <em>videos</em> tail ke</td>
+<td>Tail video ke pehle viewer ko slow start</td>
+</tr>
+<tr>
+<td>Extra renditions lazily, jab video ko views milne lagein</td>
+<td>Jinhe koi nahi dekhta un videos ka encoding CPU aur storage</td>
+<td>Achanak hit pe HD aane mein thoda delay</td>
+</tr>
+<tr>
+<td>Popularity ke region ke hisaab se distribute</td>
+<td>Regional hit ko duniya bhar mein pre-position karne ka kharcha nahi</td>
+<td>Per-region analytics chahiye</td>
+</tr>
+<tr>
+<td>Popular videos ke liye efficient codecs (VP9/AV1)</td>
+<td>Har view pe 30–50% kam bytes</td>
+<td>Encoding kai guna mehengi; device support alag-alag</td>
+</tr>
+<tr>
+<td>ISPs ke andar apne edge caches (bahut bade scale pe)</td>
+<td>Sasti bandwidth, kam latency</td>
+<td>Ek bada infrastructure programme</td>
+</tr>
+</tbody>
+</table>
+<p>Yeh sab achhe <strong>analytics</strong> pe tike hain: kya dekha ja raha hai, kahan, aur views kitni tezi se badh rahe hain.</p>
+<h3 id="jab-cheezein-fail-hon">Jab cheezein fail hon<a class="headerlink" href="#jab-cheezein-fail-hon" title="Permanent link">&para;</a></h3>
+<p>Jo failures <strong>retry</strong> ho sakte hain unhe un se alag karo jo <strong>nahi</strong> ho sakte:</p>
+<ul>
+<li><strong>Retry (idempotent, chunk-level):</strong> time out hua part upload; encode task jiska worker gayab ho gaya; scratch storage pe fail hua write. Tasks chunks pe kaam karte hain aur deterministic paths pe likhte hain, toh dobara chalana safe hai.</li>
+<li><strong>Retry mat karo:</strong> corrupt ya unsupported file, ya policy checks fail karne waala video — upload ko saaf reason ke saath <strong>failed</strong> mark karo aur creator ko batao.</li>
+<li><strong>Planner/orchestrator instance kho gaya:</strong> uska state (DAG aur task status) durable store mein hai, toh doosra instance resume kar leta hai.</li>
+<li><strong>Serving path:</strong> API servers load balancer ke peeche stateless; metadata cache aur DB automatic failover ke saath replicated (Chapters 1 aur 6); edge cache miss ya fail ho toh CDN origin pe fall back karta hai.</li>
+</ul>
+<hr />
+<h2 id="step-4-wrap-up-aur-kya">Step 4 · Wrap-up — aur kya<a class="headerlink" href="#step-4-wrap-up-aur-kya" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>API tier scale karo</strong> — stateless, horizontal.</li>
+<li><strong>Metadata DB scale karo</strong> — replication + sharding (video ID se).</li>
+<li><strong>Live streaming</strong> — same building blocks (encode, package, CDN) par bahut <strong>kam latency</strong> targets, toh alag protocols (low-latency HLS, WebRTC), chhote segments, processing mein kam parallelism, aur alag failure handling chahiye (live pal ko "retry" nahi kar sakte).</li>
+<li><strong>Takedowns</strong> — copyright/abuse removals ko storage se content delete/block <strong>aur</strong> CDN caches invalidate karne padte hain.</li>
+<li><strong>Recommendations, comments, view counts</strong> — alag systems; view counts high-write counters hain (batched, real time mein approximate).</li>
+</ul>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>API servers se upload karne ki jagah pre-signed URL kyun?</summary>
+<p>Uploads bahut bade (GBs) aur slow hain. Unhe API servers se guzaarne se har ek ki bandwidth, memory aur connections minutes tak bandh jaayenge.
+Pre-signed URL client ko seedha object storage mein likhne deta hai (jo isi ke liye bana hai), jabki API ab bhi control karti hai ki <strong>kaun</strong>,
+<strong>kya</strong>, aur <strong>kab tak</strong> upload kar sakta hai.</p>
+</details>
+<details class="question">
+<summary>User flaky mobile network pe 4 GB video upload karta hai. Kaise chalega?</summary>
+<p>Chunked, resumable uploads (jaise S3 multipart ya tus protocol se 8 MB parts). Client parts parallel upload karta hai, sirf fail hue parts retry
+karta hai, aur app restart ke baad server se poochta hai kaunse parts aa chuke aur aage badhta hai. Saare parts aane pe server unhe jodta hai (ya
+pipeline seedha GOP chunks process karti hai).</p>
+</details>
+<details class="question">
+<summary>Kitne renditions banane chahiye, aur kab?</summary>
+<p>Typical ladder: 144p/240p/360p/480p/720p/1080p (+ capable sources ke liye 4K), ek ya do codecs mein. Naye upload ke liye pehle ek chhota tez set
+banao (jaise 360p + 720p H.264) taaki video jaldi live ho; baaki asynchronously jodo, aur AV1/VP9 sirf tab jab video popular saabit ho.</p>
+</details>
+<details class="question">
+<summary>Kaunse videos CDN pe jaayein, kaise decide karoge?</summary>
+<p>Har region ke liye view-count predictions aur recent popularity use karo: top N% videos edges pe push/rakho, baaki origin se fetch hone do
+(chhote TTLs ke saath pull-through). Lagatar re-evaluate karo; viral videos view velocity ke basis pe jaldi promote hote hain.</p>
+</details>
+<details class="question">
+<summary>Player ko kaise pata chalta hai kaunsi quality chunni hai?</summary>
+<p>Player saare renditions waala manifest download karta hai, phir har segment ke liye estimated bandwidth aur current buffer se bitrate chunta hai
+(ABR algorithms jaise throughput-based ya buffer-based/BOLA). Tez start ke liye low se shuru karta hai aur buffer badhne pe upar chadhta hai.</p>
+</details>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Transcoding fleet</summary>
+<p>Roz 400K uploads, average length 8 minute. Saare renditions encode karne mein video ke har minute pe ~2 CPU-minutes lagte hain. 70% utilisation pe
+steady state mein 32-core ki kitni machines chahiye?</p>
+<p><strong>Solution.</strong> Video minutes/din = 3.2M. CPU-minutes = 6.4M/din ÷ 1,440 = average ~4,444 cores busy. 32 cores ke 70% pe (22.4 usable) → average
+<strong>~200 machines</strong>; peaks ko zyada chahiye (ya burst sokhne waali queue). Spot/preemptible instances achhe fit hain kyunki tasks retryable hain.</p>
+</details>
+<details class="example">
+<summary>Practice 2 — CDN vs origin split</summary>
+<p>Roz 15 PB egress. 80% views top 10% videos ko jaate hain. CDN $0.02/GB leta hai, origin se serve karna $0.008/GB par sirf long tail ke liye chalta
+hai. Sab CDN se serve karne ke muqable roz kitni bachat?</p>
+<p><strong>Solution.</strong> Sab CDN: 15M GB × $0.02 = <strong>$300K/din</strong>. Split: 12 PB CDN se = $240K; 3 PB origin se = $24K → <strong>$264K/din</strong>. Bachat ≈
+<strong>$36K/din (~$13M/saal)</strong>.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Segment ka hisaab</summary>
+<p>10-minute video, 6 renditions, 4-second segments. Kitni segment files? Agar player har segment pe naya bitrate chune, toh quality kitni baar badal
+sakti hai?</p>
+<p><strong>Solution.</strong> 600 s / 4 s = 150 segments × 6 = <strong>900 files</strong> (+ 7 playlists). Quality <strong>har 4 second</strong> badal sakti hai.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Storage aur CDN egress estimate kar sakta hoon aur samjha sakta hoon ki CDN cost kyun haavi hai.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Upload flow (pre-signed URL, original storage, pipeline, completion queue, metadata) aur streaming flow bana sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Containers vs codecs, aur hum kai renditions mein transcode kyun karte hain — samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Segments aur manifests ke saath HLS/DASH aur adaptive bitrate samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Transcoding DAG aur planner → orchestrator → dispatch queues → worker pools roles describe kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Speed, security aur cost optimisations aur errors handle karna pata hai.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../15-google-drive/">Aage: 15 · Google Drive <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../13-search-autocomplete/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 13 · Search Autocomplete">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                13 · Search Autocomplete
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../15-google-drive/" class="md-footer__link md-footer__link--next" aria-label="Next: 15 · Google Drive">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                15 · Google Drive
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

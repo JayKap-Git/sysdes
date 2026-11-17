@@ -1,0 +1,2432 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Sync waala cloud file store design — block-level upload aur delta sync, deduplication, strongly consistent metadata DB, long polling se change notifications, conflict handling, versioning aur storage cost control.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/hi/case-studies/15-google-drive/">
+      
+      
+        <link rel="prev" href="../14-youtube/">
+      
+      
+        <link rel="next" href="../../revise/16-cheat-sheet/">
+      
+      
+        
+          <link rel="alternate" href="../../../case-studies/15-google-drive/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>15 · Google Drive - SysDes — System Design, Gehraai se</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#15-google-drive-design-karo" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-header__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Gehraai se
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              15 · Google Drive
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../case-studies/15-google-drive/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Yahan se shuru karo
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations (Neev)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../building-blocks/04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revision & Aage
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="SysDes — System Design, Gehraai se" class="md-nav__button md-logo" aria-label="SysDes — System Design, Gehraai se" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Gehraai se
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Yahan se shuru karo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations (Neev)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations (Neev)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Zero se Millions tak Scale
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · Interview ka Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/06-key-value-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../building-blocks/07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-register-waali-saanjhi-almaari" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: register waali saanjhi almaari
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-shuruaat-ek-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple shuruaat: ek server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scale out
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#poora-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poora design
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-servers-delta-sync-aur-compression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block servers: delta sync aur compression
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-ke-liye-strong-consistency-kyun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata ke liye strong consistency kyun
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#download-sync-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download / sync flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notification-service-long-polling-kyun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notification service: long polling kyun?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conflicts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-space-bachana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage space bachana
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failure-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-aur-directions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up — aur directions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revision & Aage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revision & Aage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary (Shabdkosh)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · Seekhna Jaari Hai
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#intuition-register-waali-saanjhi-almaari" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intuition: register waali saanjhi almaari
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1 · Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estimates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-high-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 · High-level design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 · High-level design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-shuruaat-ek-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple shuruaat: ek server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scale-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scale out
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#poora-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poora design
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-deep-dive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 · Deep dive
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3 · Deep dive">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-servers-delta-sync-aur-compression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block servers: delta sync aur compression
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-ke-liye-strong-consistency-kyun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata ke liye strong consistency kyun
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#download-sync-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download / sync flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notification-service-long-polling-kyun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notification service: long polling kyun?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conflicts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-space-bachana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage space bachana
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failure-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-wrap-up-aur-directions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 · Wrap-up — aur directions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/case-studies/15-google-drive.hi.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="15-google-drive-design-karo">15 · Google Drive Design karo<a class="headerlink" href="#15-google-drive-design-karo" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 45 min read</span>
+<span class="hot">🔥 Sync, consistency aur storage efficiency test karta hai</span>
+<span>Book: Chapter 15</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>Files <strong>blocks</strong> mein toot-ti hain (jaise 4 MB), har ek ki pehchaan uska <strong>content hash</strong>. Sirf badle hue blocks upload/download → <strong>delta sync</strong>; identical blocks ek hi baar store → <strong>dedup</strong>.</li>
+<li>Bytes <strong>block servers</strong> ke through <strong>object storage</strong> (S3) mein; baaki sab — users, devices, files, versions, block lists — <strong>strongly consistent metadata DB</strong> (relational, ACID) mein.</li>
+<li>File badalne pe <strong>notification service</strong> (long polling) user ke baaki devices ko batati hai; woh nayi block list laate hain aur sirf missing blocks download karte hain. <strong>Offline devices</strong> offline backup queue / change log se catch up karte hain.</li>
+<li><strong>Conflicts</strong>: jo version pehle commit hua woh jeetta hai; doosra "conflicted copy" ban jaata hai jo user resolve karta hai.</li>
+<li>Cost control: dedup, limited version history (aur purane versions patle karna), aur kam access hone waale data ke liye <strong>cold storage</strong>.</li>
+</ul>
+</div>
+<h2 id="intuition-register-waali-saanjhi-almaari">Intuition: register waali saanjhi almaari<a class="headerlink" href="#intuition-register-waali-saanjhi-almaari" title="Permanent link">&para;</a></h2>
+<p>Socho ek ghar ki almaari jisme sab documents rakhte hain, aur aage ek <strong>register</strong> hai jo har document, uske pages, aur aakhri baar kisne badla, list
+karta hai. 100-page file mein sirf page 37 badla toh poori file nahi badalte — page 37 badlo aur register update karo. Do log ek saath same page edit
+karein, toh jo register mein pehle likhe woh jeetta hai; doosre ka version "copy 2" ki tarah rakh liya jaata hai. Doosre shehron mein rehne waale
+family members ko phone aata hai: "register update hua" — aur woh sirf naya page mangwaate hain.</p>
+<p>Pages = blocks. Register = metadata DB. Phone call = notification service.</p>
+<hr />
+<h2 id="step-1-scope">Step 1 · Scope<a class="headerlink" href="#step-1-scope" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Clarifying baatcheet</p>
+<p><strong>Tum:</strong> Personal storage hai, team storage, ya dono? — <strong>Interviewer:</strong> Pehle personal, folder sharing ke saath.
+<strong>Tum:</strong> "Sync" ka matlab kya — har device hamesha cloud ka mirror? — <strong>I:</strong> Haan, desktop clients local mirror rakhte hain; phones zaroorat pe laate hain.
+<strong>Tum:</strong> Files kitni badi ho sakti hain? — <strong>I:</strong> 5 GB tak.
+<strong>Tum:</strong> Free quota? — <strong>I:</strong> Har user 10 GB.
+<strong>Tum:</strong> Kitne users? — <strong>I:</strong> 40M registered, roz 8M active.
+<strong>Tum:</strong> Purane versions rakhne hain? — <strong>I:</strong> Haan, users purane versions restore kar sakein.
+<strong>Tum:</strong> Security expectations? — <strong>I:</strong> Transit mein aur at rest encrypted.</p>
+</div>
+<p><strong>Scope se bahar</strong> (sirf mention): real-time collaborative editing (woh Google Docs hai — operational transforms/CRDTs, alag problem).</p>
+<p><strong>Non-functional:</strong> <strong>reliability</strong> (data kabhi na khoye — #1 requirement), <strong>tez sync</strong>, <strong>kam bandwidth</strong> (mobile data mehenga hai), scalability, high availability.</p>
+<h3 id="estimates">Estimates<a class="headerlink" href="#estimates" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allocated storage</td>
+<td>40M × 10 GB = <strong>400 PB</strong> allocated (asli use shayad 30–40% → ~140 PB)</td>
+</tr>
+<tr>
+<td>Uploads</td>
+<td>8M DAU × 3 files/din = 24M/din → ~<strong>280/s</strong>, peak ~600/s</td>
+</tr>
+<tr>
+<td>Average file</td>
+<td>~1 MB → dedup se pehle roz ~24 TB naya data</td>
+</tr>
+<tr>
+<td>Metadata reads</td>
+<td>sync checks, folders list karna: uploads ka ~10× → ~3K/s</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="step-2-high-level-design">Step 2 · High-level design<a class="headerlink" href="#step-2-high-level-design" title="Permanent link">&para;</a></h2>
+<h3 id="simple-shuruaat-ek-server">Simple shuruaat: ek server<a class="headerlink" href="#simple-shuruaat-ek-server" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    C[Client] --&gt;|"upload / download / revisions"| WS["Web server&lt;br/&gt;(Apache)"] --&gt; DB[(MySQL metadata)]
+    WS --&gt; FS[("Local disk&lt;br/&gt;/drive/{namespace}/…")]</code></pre>
+<p>APIs:</p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="err">POST /files/upload?uploadType=resumable      # resumable upload shuru → upload session URL milta hai</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="err">PUT  &lt;session URL&gt;  (bytes, Content-Range)   # data bhejo; failures ke baad resume</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="err">GET  /files/download?path=/docs/resume.pdf</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="err">GET  /files/list_revisions?path=/docs/resume.pdf&amp;limit=20</span>
+</span></code></pre></div>
+<ul>
+<li>Chhoti files ke liye <strong>simple upload</strong>; badi files ke liye <strong>resumable upload</strong> — toota connection jhel lo bina dobara shuru kiye.</li>
+<li>Saare endpoints HTTPS pe auth (OAuth tokens) maangte hain.</li>
+</ul>
+<p>Disk bharne tak chalta hai. Ab scale karo.</p>
+<h3 id="scale-out">Scale out<a class="headerlink" href="#scale-out" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Storage</strong> → files ko <strong>object storage</strong> (S3) pe le jao: region ke andar replicated; <strong>cross-region replication</strong> on karo taaki regional disaster mein data na khoye.</li>
+<li><strong>Load balancer</strong> + <strong>kai stateless web/API servers</strong>.</li>
+<li><strong>Metadata DB</strong> → alag, replicated (aur baad mein sharded) relational DB.</li>
+<li><strong>Block servers</strong> storage pe upload se pehle files ko blocks mein todte hain.</li>
+</ul>
+<h3 id="poora-design">Poora design<a class="headerlink" href="#poora-design" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TB
+    U["Clients&lt;br/&gt;desktop · mobile · web"] --&gt;|"API: metadata"| LB{{Load balancer}} --&gt; API[API servers]
+    U --&gt;|"blocks"| BS["Block servers&lt;br/&gt;split · compress · encrypt"]
+    BS --&gt; S3[(Cloud storage&lt;br/&gt;S3)]
+    S3 -.-&gt;|"kam use"| COLD[(Cold storage)]
+    API --&gt; MC[(Metadata cache)] --&gt; MDB[(Metadata DB&lt;br/&gt;strongly consistent)]
+    API --&gt; NS["Notification service&lt;br/&gt;(long polling)"]
+    NS &lt;--&gt;|"long poll"| U
+    API --&gt; OQ[["Offline backup queue"]]</code></pre>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Block servers</strong></td>
+<td>Files ko blocks mein todo, compress, encrypt, aur cloud storage pe upload; download pe wapas jodo. Har block ki ID = uske content ka hash.</td>
+</tr>
+<tr>
+<td><strong>Cloud storage</strong></td>
+<td>Blocks rakhta hai (immutable objects).</td>
+</tr>
+<tr>
+<td><strong>Cold storage</strong></td>
+<td>Inactive files ke liye sasta tier (jaise S3 Glacier).</td>
+</tr>
+<tr>
+<td><strong>API servers</strong></td>
+<td>Bytes ke alawa sab: auth, profiles, file metadata, sharing, versions.</td>
+</tr>
+<tr>
+<td><strong>Metadata DB</strong></td>
+<td>Users, devices, files, versions, block lists, sharing. <strong>Strong consistency.</strong></td>
+</tr>
+<tr>
+<td><strong>Metadata cache</strong></td>
+<td>Tez reads ke liye hot metadata.</td>
+</tr>
+<tr>
+<td><strong>Notification service</strong></td>
+<td>Clients ko "kuch badla" publish karti hai (long polling).</td>
+</tr>
+<tr>
+<td><strong>Offline backup queue</strong></td>
+<td>Offline devices ke liye changes rakhti hai, taaki baad mein sync kar sakein.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="step-3-deep-dive">Step 3 · Deep dive<a class="headerlink" href="#step-3-deep-dive" title="Permanent link">&para;</a></h2>
+<h3 id="block-servers-delta-sync-aur-compression">Block servers: delta sync aur compression<a class="headerlink" href="#block-servers-delta-sync-aur-compression" title="Permanent link">&para;</a></h3>
+<p>Ek paragraph badalne pe poori 2 GB file upload karna bandwidth ki barbaadi hai. Toh:</p>
+<ol>
+<li>File ko <strong>blocks</strong> mein todo (Dropbox famously max 4 MB use karta tha).</li>
+<li>Har block hash karo (SHA-256) → <strong>block ID</strong>.</li>
+<li>Server se poochho kaunsi block IDs uske paas <strong>pehle se</strong> hain; sirf missing upload karo (<strong>delta sync</strong>).</li>
+<li>Har block ko bhejne se pehle <strong>compress</strong> (text ke liye gzip/zstd; images/video pehle se compressed) aur <strong>encrypt</strong> karo.</li>
+</ol>
+<pre class="mermaid"><code>flowchart LR
+    F["resume.pdf (v2)"] --&gt; SPLIT["blocks mein todo&lt;br/&gt;b1 b2 b3 b4"]
+    SPLIT --&gt; H["har block hash"]
+    H --&gt; CMP{"server ke paas&lt;br/&gt;block hai?"}
+    CMP --&gt;|"b1, b2, b4: haan"| SKIP[skip]
+    CMP --&gt;|"b3: nahi (badla)"| UP["compress → encrypt → b3 upload"]</code></pre>
+<p><strong>Fixed vs content-defined chunking.</strong> Fixed-size blocks mein shuruaat mein ek byte daalne se <strong>har</strong> block boundary khisak jaati hai → har block ka hash
+badal jaata hai. <strong>Content-defined chunking</strong> (rolling hash, jaise Rabin fingerprints) blocks wahan kaat-ta hai jahan content mein khaas patterns hain,
+toh insertion sirf apne aas-paas ka block badalta hai.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="cm">/** SHA-256 block IDs ke saath fixed-size chunking (content-defined chunking split rule badal dega). */</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">static</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">blockIds</span><span class="p">(</span><span class="n">Path</span><span class="w"> </span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">blockSize</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="n">MessageDigest</span><span class="w"> </span><span class="n">sha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MessageDigest</span><span class="p">.</span><span class="na">getInstance</span><span class="p">(</span><span class="s">"SHA-256"</span><span class="p">);</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="n">InputStream</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Files</span><span class="p">.</span><span class="na">newInputStream</span><span class="p">(</span><span class="n">file</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">buf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">byte</span><span class="o">[</span><span class="n">blockSize</span><span class="o">]</span><span class="p">;</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">;</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">((</span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">in</span><span class="p">.</span><span class="na">readNBytes</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">blockSize</span><span class="p">))</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">            </span><span class="n">ids</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">HexFormat</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">formatHex</span><span class="p">(</span><span class="n">sha</span><span class="p">.</span><span class="na">digest</span><span class="p">(</span><span class="n">Arrays</span><span class="p">.</span><span class="na">copyOf</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">))));</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">ids</span><span class="p">;</span><span class="w">   </span><span class="c1">// file ka version = block IDs ki yeh ordered list</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="metadata-ke-liye-strong-consistency-kyun">Metadata ke liye strong consistency kyun<a class="headerlink" href="#metadata-ke-liye-strong-consistency-kyun" title="Permanent link">&para;</a></h3>
+<p>Agar do devices same file ki block list ke alag versions dekhein, toh woh alag content dikhayenge — ya badtar, ek-doosre ko overwrite kar denge.
+<strong>Metadata</strong> strongly consistent hona chahiye (commit ke baad har read commit dekhe), chahe thodi availability ki keemat lage.</p>
+<ul>
+<li>ACID transactions waala <strong>relational DB</strong> use karo — naya version commit karna (version row + block list insert + "latest" pointer update) ek transaction hai.</li>
+<li><strong>Caches</strong> consistent rakhne padte hain: cache ke replicas master se agree karein; har metadata write pe cache <strong>invalidate</strong> karo.</li>
+<li>Kai NoSQL stores default mein eventual consistency dete hain → extra dhyaan chahiye. Bytes (blocks) ko iski zaroorat nahi — woh <strong>immutable</strong> aur content-addressed hain, kabhi "inconsistent" ho hi nahi sakte.</li>
+</ul>
+<h3 id="metadata-schema">Metadata schema<a class="headerlink" href="#metadata-schema" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>erDiagram
+    USER ||--o{ DEVICE : has
+    USER ||--o{ NAMESPACE : owns
+    NAMESPACE ||--o{ FILE : contains
+    FILE ||--o{ FILE_VERSION : has
+    FILE_VERSION ||--o{ VERSION_BLOCK : "ordered list of"
+    BLOCK ||--o{ VERSION_BLOCK : "used by"
+    USER {
+        bigint user_id PK
+        string email
+        bigint quota_used
+    }
+    DEVICE {
+        uuid device_id PK
+        bigint user_id FK
+        bigint last_synced_change
+        timestamp last_seen
+    }
+    NAMESPACE {
+        bigint namespace_id PK
+        bigint owner_id FK
+    }
+    FILE {
+        bigint file_id PK
+        bigint namespace_id FK
+        string path
+        int latest_version
+        bool is_deleted
+        string checksum
+    }
+    FILE_VERSION {
+        bigint file_id FK
+        int version_no
+        uuid device_id
+        timestamp created_at
+    }
+    BLOCK {
+        string block_hash PK
+        int size
+        int ref_count
+    }
+    VERSION_BLOCK {
+        bigint file_id FK
+        int version_no FK
+        int position
+        string block_hash FK
+    }</code></pre>
+<ul>
+<li><strong>Namespace</strong> = user ka root folder (ya shared folder).</li>
+<li><strong>File versions immutable rows hain</strong> — kabhi update nahi, sirf append → "pichla version restore" ke liye poori history.</li>
+<li>Version <strong>block hashes ki ordered list</strong> hai. Dedup aur garbage collection ke liye blocks ka <code>ref_count</code> hai.</li>
+</ul>
+<h3 id="upload-flow">Upload flow<a class="headerlink" href="#upload-flow" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>sequenceDiagram
+    participant C1 as Client 1 (laptop)
+    participant API as API servers
+    participant MDB as Metadata DB
+    participant BS as Block servers
+    participant S3 as Cloud storage
+    participant NS as Notification service
+    participant C2 as Client 2 (phone)
+    par metadata
+        C1-&gt;&gt;API: report.xlsx ka naya version (block list)
+        API-&gt;&gt;MDB: status = uploading, pending version record
+        API-&gt;&gt;NS: notify: report.xlsx upload ho raha hai
+        NS-&gt;&gt;C2: change event
+    and bytes
+        C1-&gt;&gt;BS: sirf missing blocks
+        BS-&gt;&gt;S3: blocks store (compressed, encrypted)
+        S3--&gt;&gt;API: upload-complete callback
+        API-&gt;&gt;MDB: version commit, status = uploaded
+        API-&gt;&gt;NS: notify: report.xlsx update hua
+        NS-&gt;&gt;C2: change event
+    end</code></pre>
+<p>Do requests parallel mein: (1) file <strong>metadata</strong> jodo (status <code>pending/uploading</code>), aur (2) <strong>blocks</strong> upload karo. Storage saare blocks confirm kare toh
+version commit hota hai (status <code>uploaded</code>) aur baaki devices ko notify kiya jaata hai.</p>
+<h3 id="download-sync-flow">Download / sync flow<a class="headerlink" href="#download-sync-flow" title="Permanent link">&para;</a></h3>
+<p>Device ko kaise pata chale ki kuch badla?</p>
+<ul>
+<li><strong>Online:</strong> notification service batati hai.</li>
+<li><strong>Offline:</strong> changes jama hote rehte hain (offline backup queue / change log mein); reconnect pe device poochta hai "change #N ke baad kya badla?" (<code>last_synced_change</code>).</li>
+</ul>
+<pre class="mermaid"><code>sequenceDiagram
+    participant NS as Notification service
+    participant C2 as Client 2
+    participant API as API servers
+    participant MDB as Metadata DB
+    participant BS as Block servers
+    participant S3 as Cloud storage
+    NS-&gt;&gt;C2: report.xlsx badla
+    C2-&gt;&gt;API: #N ke baad ke changes do
+    API-&gt;&gt;MDB: naya version + block list laao
+    MDB--&gt;&gt;API: blocks [b1,b2,b7,b4]
+    API--&gt;&gt;C2: block list
+    C2-&gt;&gt;C2: local blocks se compare → b7 chahiye
+    C2-&gt;&gt;BS: b7 download
+    BS-&gt;&gt;S3: b7 lao
+    S3--&gt;&gt;BS: b7
+    BS--&gt;&gt;C2: b7 (decrypt, decompress)
+    C2-&gt;&gt;C2: file jodo, last_synced_change update</code></pre>
+<h3 id="notification-service-long-polling-kyun">Notification service: long polling kyun?<a class="headerlink" href="#notification-service-long-polling-kyun" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Long polling</th>
+<th>WebSocket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kis direction ki zaroorat</td>
+<td>Sirf server → client, kabhi-kabhi</td>
+<td>Bi-directional, baar-baar</td>
+</tr>
+<tr>
+<td>Drive ke liye fit</td>
+<td>✅ changes kabhi-kabhi bursts mein; client phir normal APIs call karta hai</td>
+<td>Zaroorat se zyada</td>
+</tr>
+<tr>
+<td>Chat ke liye fit (Ch. 12)</td>
+<td>Kamzor</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>Har client ek long-poll connection rakhta hai; change aaye (ya poll time out ho) toh server respond karta hai; client metadata changes laata hai aur
+reconnect karta hai. Connections pakadna sasta hai par bahut saare — har cluster pe lakhon. Notification server mare toh clients doosre se reconnect
+karte hain (data nahi kho sakte — woh change log le aayenge).</p>
+<h3 id="conflicts">Conflicts<a class="headerlink" href="#conflicts" title="Permanent link">&para;</a></h3>
+<p>Do devices sync se pehle same file edit karte hain. <strong>Jo version pehle commit hua woh jeetta hai</strong>; doosra <strong>conflicted copy</strong> ki tarah save hota hai
+(<code>report (Asha's laptop's conflicted copy 2026-11-17).xlsx</code>) aur user haath se merge karta hai. (Automatic merging sirf structured formats ke liye
+chalta hai — woh collaborative editing hai, scope se bahar.)</p>
+<p>"Pehla jeetta hai" optimistic concurrency se implement karo: commit bolta hai "version 7 pe based naya version"; agar latest ab 7 nahi, toh commit
+conflict ki tarah reject.</p>
+<h3 id="storage-space-bachana">Storage space bachana<a class="headerlink" href="#storage-space-bachana" title="Permanent link">&para;</a></h3>
+<p>Storage hamesha badhta rehta hai jab tak uske khilaaf design na karo. Chaar levers, typical deployment mein sabse badi jeet se chhoti tak:</p>
+<ol>
+<li><strong>Content-addressed blocks dedup muft mein dete hain.</strong> Same hash → same object; bas <code>ref_count</code> badhao. Per-account dedup safe hai; users ke across <em>global</em> dedup zyada bachata hai par yeh bata sakta hai ki kisi aur user ke paas pehle se file hai, toh dhyaan se lagao.</li>
+<li><strong>Versions saste hain par muft nahi.</strong> Naya version sirf badle blocks jodta hai, toh history ka kharcha kam — par har kuch second auto-save karne waala app phir bhi hazaaron versions bana sakta hai. <strong>Umar ke saath history patli karo</strong> (recent versions ghane, purane virle) aur har plan ki retention cap karo.</li>
+<li><strong>Tiering.</strong> Jo data mahino se kisi ne nahi khola woh kahin saste archive tier pe jaata hai; restore slow hota hai, jo purani files ke liye users shaayad hi notice karte hain.</li>
+<li><strong>Garbage collection.</strong> Versions expire ya files delete hone pe jin blocks ka <code>ref_count</code> zero ho jaaye woh hata do — grace period ke baad, bugs ya restores ke case mein.</li>
+</ol>
+<h3 id="failure-handling">Failure handling<a class="headerlink" href="#failure-handling" title="Permanent link">&para;</a></h3>
+<p>Failures ko <strong>kya daav pe hai</strong> se sort karo:</p>
+<p><strong>Kya data kho sakta hai?</strong> Sabse important yahi hai.</p>
+<ul>
+<li>Blocks region ke andar replicate hone waale object storage mein likhe jaate hain, aur hum <strong>doosre region</strong> mein bhi replicate karte hain; version tabhi commit hota hai jab uske saare blocks durably store ho jaayein — toh upload ke beech crash ek uncommitted version chhodta hai, kabhi corrupt file nahi.</li>
+<li>Metadata DB synchronous replicas aur automatic leader failover ke saath chalta hai; regular backups aur point-in-time recovery galat writes (bugs, galti se mass deletes) se bachate hain.</li>
+</ul>
+<p><strong>Kya sync atak sakta hai?</strong></p>
+<ul>
+<li>Notification server mare toh uske clients ke long polls toot-te hain; woh kahin aur reconnect karke poochte hain "mere aakhri sync ke baad kya badla?" — change log chhoote notifications ko harmless bana deta hai.</li>
+<li>Offline devices ke change events replicated queues/logs mein rehte hain, toh broker failure sync ko late karta hai par kuch nahi khota.</li>
+</ul>
+<p><strong>Kya requests fail ho sakti hain?</strong></p>
+<ul>
+<li>API servers aur block servers redundant load balancers ke peeche stateless hain; adhoora block job doosra server bas retry kar leta hai (block uploads idempotent hain — same hash, same object).</li>
+<li>Metadata cache replicated hai; ek node khone ka matlab bas replace hone tak zyada DB reads.</li>
+</ul>
+<hr />
+<h2 id="step-4-wrap-up-aur-directions">Step 4 · Wrap-up — aur directions<a class="headerlink" href="#step-4-wrap-up-aur-directions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Chunking kahan honi chahiye?</strong> Humne splitting/compression/encryption block servers mein rakha taaki logic ek trusted jagah rahe. Alternative — clients signed URLs se seedha object storage pe blocks upload karein — ek hop aur server cost hatata hai, par har client platform (Windows, macOS, iOS, Android, web) ko same chunking aur crypto sahi implement karna padega, aur buggy ya tampered client kharab data upload kar sakta hai. Kai asli systems hybrid karte hain: clients chunk aur hash karte hain, servers verify.</li>
+<li><strong>Selective sync / on-demand files.</strong> Desktop clients placeholders dikhate hain aur content sirf khulne pe download karte hain — zaroori jab users ka cloud data laptop disk se zyada ho jaaye.</li>
+<li><strong>Sharing aur permissions.</strong> Har namespace/file ke ACLs, expire hone waale share links, aur har metadata aur block request pe permission checks.</li>
+<li><strong>Search.</strong> File names (aur optionally contents) ko asynchronously search service mein index karo, permissions ka dhyaan rakhte hue.</li>
+<li><strong>Presence.</strong> Agar doosre features ko "kaun online hai" chahiye, toh use notification service se nikaal ke apni service banao.</li>
+</ul>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>User 1 GB file mein 1 byte badalta hai. Kya upload hota hai?</summary>
+<p>4 MB fixed blocks ke saath, us byte waala block badalta hai → ~4 MB (compressed) upload, 1 GB nahi. Agar bytes <strong>insert</strong> hue (modify nahi), toh fixed
+chunking har baad waale block ko khiska degi; content-defined chunking change ko local rakhti hai, toh ab bhi sirf ek-do blocks upload hote hain.</p>
+</details>
+<details class="question">
+<summary>Metadata ke liye Dynamo jaisi eventual consistency kyun nahi?</summary>
+<p>Kyunki diverge hua metadata matlab devices is baat pe asehmat hain ki file kin blocks se bani hai — users alag content dekhenge ya chupchaap ek-doosre
+ke changes overwrite karenge. Sync correctness ko "latest version" ka ek, linearizable view aur atomic commits chahiye; metadata ke liye hum
+availability/latency ki keemat maante hain jabki bhaari, immutable blocks highly available store mein rehte hain.</p>
+</details>
+<details class="question">
+<summary>Upload resumable kaise banaoge?</summary>
+<p>Client pehle upload register karta hai (session ID aur un blocks ki list milti hai jo server ko abhi chahiye). Har block alag upload aur acknowledge
+hota hai. Crash ya disconnect ke baad client session se poochta hai kaunse blocks abhi missing hain aur sirf wahi bhejta hai. Version tabhi commit hota
+hai jab saare blocks confirm ho jaayein.</p>
+</details>
+<details class="question">
+<summary>Ek hafte se offline phone efficiently kaise catch up karega?</summary>
+<p>Woh <code>last_synced_change = N</code> bhejta hai; server N ke baad ki change log entries return karta hai (file IDs aur unke latest versions — har beech ka version
+nahi). Phone sirf un files ki block lists aur sirf woh blocks download karta hai jo uske paas nahi. Bade backlog ke liye pehle woh folders sync kar sakta
+hai jo user sach mein kholta hai (selective sync).</p>
+</details>
+<details class="question">
+<summary>Folder ko doosre user ke saath share karna kaise implement karoge?</summary>
+<p>Shared folders ACL (owner, editors, viewers) waale namespaces hain. Recipient ka device us namespace ke notifications subscribe karta hai; metadata queries
+mein woh saare namespaces shaamil hote hain jinhe user access kar sakta hai. Permission checks API servers aur block servers (signed, scoped block URLs) mein
+har access pe hote hain.</p>
+</details>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Delta sync bandwidth</summary>
+<p>Ek designer 200 MB ki PSD din mein 30 baar save karta hai; har save file ka ~5% badalta hai, ~6 blocks (4 MB) mein bikhra hua. Full-file upload vs
+block-level delta sync mein roz kitna upload hota hai?</p>
+<p><strong>Solution.</strong> Full: 30 × 200 MB = <strong>6 GB/din</strong>. Delta: 30 × 6 × 4 MB = <strong>720 MB/din</strong> (compression se pehle ≈ 8× kam).</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Dedup ki bachat</summary>
+<p>Ek company ke 10,000 employees hain; har ek ki Drive mein same 300 MB ka onboarding folder hai. Per-company dedup ke saath aur bina storage?</p>
+<p><strong>Solution.</strong> Bina: 10,000 × 300 MB = <strong>3 TB</strong>. Dedup ke saath: <strong>300 MB</strong> (+ metadata aur ref counts). Isliye workplaces mein block-level,
+content-addressed storage itna effective hai.</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Version thinning</summary>
+<p>Ek file roz 8 ghante har 30 second auto-save hoti hai. Aisi retention policy design karo jo pichla ghanta minute-by-minute, pichla hafta hourly, aur 30
+din tak purani history daily rakhe. Max kitne versions rakhe jaayenge?</p>
+<p><strong>Solution.</strong> Pichla ghanta: 60; pichla hafta (pichle ghante ke alawa): ~7 × 24 = 168; din 8–30: 23 → 960/din × 30 = 28,800 ki jagah <strong>~251 versions</strong>.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Requirements bata sakta hoon aur storage aur upload QPS estimate kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Single-server design ko poore architecture mein badal ke har component samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Block splitting, hashing, delta sync, compression, encryption — aur content-defined chunking samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Metadata ke liye strong consistency justify kar sakta hoon aur metadata schema design kar sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Offline devices samet upload aur download/sync flows samjha sakta hoon.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Notifications ke liye long polling, conflict handling, storage savings aur failure handling samjha sakta hoon.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../../revise/16-cheat-sheet/">Aage: 16 · Revision Cheat Sheet <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../14-youtube/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 14 · YouTube">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                14 · YouTube
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../revise/16-cheat-sheet/" class="md-footer__link md-footer__link--next" aria-label="Next: 16 · Revision Cheat Sheet">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                16 · Revision Cheat Sheet
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,2570 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Designing a Dynamo-style distributed key-value store — CAP, partitioning, replication, N/W/R quorums, vector clocks, gossip, sloppy quorum and hinted handoff, Merkle trees, and the LSM write/read path with Bloom filters.">
+      
+      
+        <meta name="author" content="Jayant Kapoor">
+      
+      
+        <link rel="canonical" href="https://sysdes.jayantkapoor.com/building-blocks/06-key-value-store/">
+      
+      
+        <link rel="prev" href="../05-consistent-hashing/">
+      
+      
+        <link rel="next" href="../07-unique-id-generator/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../hi/building-blocks/06-key-value-store/" hreflang="hi">
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>06 · Key-Value Store - SysDes — System Design, Deeply</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#06-design-a-key-value-store" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  
+    Read every chapter in <strong>English</strong> or <strong>Hinglish</strong> — use the 🌐 switch in the header
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="SysDes — System Design, Deeply" class="md-header__button md-logo" aria-label="SysDes — System Design, Deeply" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SysDes — System Design, Deeply
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              06 · Key-Value Store
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../hi/building-blocks/06-key-value-store/" hreflang="hi" class="md-select__link">
+              Hinglish
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Start Here
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Foundations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../04-rate-limiter/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Building Blocks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../case-studies/08-url-shortener/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../revise/16-cheat-sheet/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Revise & Beyond
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="SysDes — System Design, Deeply" class="md-nav__button md-logo" aria-label="SysDes — System Design, Deeply" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16v-3c0-1.11-.89-2-2-2h-6V8h2V2H9v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6zM11 4h2v2h-2zM5 20H3v-2h2zm8 0h-2v-2h2zm8 0h-2v-2h2z"/></svg>
+
+    </a>
+    SysDes — System Design, Deeply
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JayKap-Git/sysdes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JayKap-Git/sysdes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start Here
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Foundations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/01-scale-from-zero-to-millions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 · Scale from Zero to Millions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/02-back-of-the-envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 · Back-of-the-Envelope Estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../foundations/03-interview-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 · The Interview Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building Blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building Blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-rate-limiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 · Rate Limiter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-consistent-hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 · Consistent Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 · Key-Value Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-intuition-a-library-with-many-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The intuition: a library with many branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-server-key-value-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-server key-value store
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cap-theorem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CAP theorem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CAP theorem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-worked-scenario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A worked scenario
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-data-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 · Data partitioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-data-replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 · Data replication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-consistency-with-quorums" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 · Consistency with quorums
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consistency-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consistency models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-inconsistency-resolution-versioning-and-vector-clocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 · Inconsistency resolution: versioning and vector clocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-handling-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 · Handling failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 · System architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-write-path-lsm-tree-as-in-cassandra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7 · Write path (LSM-tree, as in Cassandra)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-read-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8 · Read path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#putting-it-together-the-requests-journey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Putting it together: the request's journey
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-unique-id-generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 · Unique ID Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case Studies
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Case Studies
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/08-url-shortener/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 · URL Shortener
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/09-web-crawler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 · Web Crawler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/10-notification-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10 · Notification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/11-news-feed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11 · News Feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/12-chat-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12 · Chat System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/13-search-autocomplete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13 · Search Autocomplete
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/14-youtube/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    14 · YouTube
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/15-google-drive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    15 · Google Drive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revise & Beyond
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Revise & Beyond
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/16-cheat-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    16 · Revision Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/17-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    17 · Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../revise/18-learning-continues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    18 · The Learning Continues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-intuition-a-library-with-many-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The intuition: a library with many branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 · Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-server-key-value-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-server key-value store
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cap-theorem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CAP theorem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CAP theorem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-worked-scenario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A worked scenario
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-data-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 · Data partitioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-data-replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 · Data replication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-consistency-with-quorums" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 · Consistency with quorums
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consistency-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consistency models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-inconsistency-resolution-versioning-and-vector-clocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 · Inconsistency resolution: versioning and vector clocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-handling-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 · Handling failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 · System architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-write-path-lsm-tree-as-in-cassandra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7 · Write path (LSM-tree, as in Cassandra)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-read-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8 · Read path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#putting-it-together-the-requests-journey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Putting it together: the request's journey
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interviewer-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interviewer follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revision-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revision checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/JayKap-Git/sysdes/edit/main/docs/building-blocks/06-key-value-store.en.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="06-design-a-key-value-store">06 · Design a Key-Value Store<a class="headerlink" href="#06-design-a-key-value-store" title="Permanent link">&para;</a></h1>
+<div class="chapter-meta">
+<p><span>⏱ 60 min read</span>
+<span class="hot">🔥 The densest chapter — distributed-systems core</span>
+<span>Book: Chapter 6</span></p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">TL;DR</p>
+<ul>
+<li>A key-value store is a giant <code>Map&lt;key, value&gt;</code> with <code>put(key, value)</code> and <code>get(key)</code>. One machine is easy; the challenge is spreading it over <strong>hundreds of machines that fail</strong>.</li>
+<li><strong>CAP:</strong> during a network partition you must choose <strong>consistency</strong> (CP — refuse some requests) or <strong>availability</strong> (AP — answer, maybe stale). Dynamo/Cassandra choose <strong>AP + eventual consistency</strong>.</li>
+<li><strong>Partition</strong> with consistent hashing (+ vnodes), <strong>replicate</strong> each key to the next <strong>N</strong> distinct servers on the ring, and tune consistency with <strong>quorums</strong>: <code>W + R &gt; N</code> ⇒ reads see the latest write.</li>
+<li>Detect conflicts with <strong>vector clocks</strong>; detect failures with <strong>gossip</strong>; survive temporary failures with <strong>sloppy quorum + hinted handoff</strong>; repair permanent divergence with <strong>Merkle trees</strong>.</li>
+<li>Storage engine: <strong>commit log → memtable → SSTables</strong> (LSM tree). Reads check memtable, then a <strong>Bloom filter</strong> per SSTable to skip files that can't contain the key.</li>
+</ul>
+</div>
+<h2 id="the-intuition-a-library-with-many-branches">The intuition: a library with many branches<a class="headerlink" href="#the-intuition-a-library-with-many-branches" title="Permanent link">&para;</a></h2>
+<p>Imagine a city library system storing millions of books across 50 branches.</p>
+<ul>
+<li><strong>Which branch holds which book?</strong> A rule based on the book's ID → <em>partitioning</em>.</li>
+<li><strong>What if a branch floods?</strong> Keep copies of each book in 3 nearby branches → <em>replication</em>.</li>
+<li><strong>Two branches update the same book's catalog card differently while their phone line is down?</strong> You need a way to notice the conflict and merge → <em>versioning / vector clocks</em>.</li>
+<li><strong>How do branches know another branch is closed?</strong> They chat with a few neighbours every few minutes and pass the news along → <em>gossip</em>.</li>
+<li><strong>A branch is closed for a day — where do new returns go?</strong> A neighbour holds them temporarily and hands them back later → <em>hinted handoff</em>.</li>
+<li><strong>After a long outage, how do two branches find which cards differ without comparing all million?</strong> Compare summaries of shelves, then only the shelves that differ → <em>Merkle trees</em>.</li>
+</ul>
+<hr />
+<h2 id="step-1-scope">Step 1 · Scope<a class="headerlink" href="#step-1-scope" title="Permanent link">&para;</a></h2>
+<p>A KV store (also called a key-value database) stores <strong>unique keys</strong> mapped to <strong>values</strong>. Keys can be
+plain text (<code>"user:42:profile"</code>) or hashed; values are opaque blobs — strings, lists, JSON — the store doesn't
+care. Well-known examples: <strong>Amazon DynamoDB</strong>, <strong>Redis</strong>, <strong>Memcached</strong>, <strong>Apache Cassandra</strong>, <strong>etcd</strong>, <strong>RocksDB</strong> (embedded).</p>
+<p><strong>API:</strong></p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kt">void</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">value</span><span class="p">);</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">);</span>
+</span></code></pre></div>
+<p><strong>Requirements we'll design for</strong> (every design is a set of trade-offs — these are ours):</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Target (our assumptions)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Value size</td>
+<td>Typically ≤ 1 KB, hard cap 64 KB (big blobs belong in object storage)</td>
+</tr>
+<tr>
+<td>Total data</td>
+<td>Hundreds of TB, growing — far beyond one machine</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>Reads and writes keep working while individual nodes or a rack are down</td>
+</tr>
+<tr>
+<td>Durability</td>
+<td>An acknowledged write is never lost</td>
+</tr>
+<tr>
+<td>Elasticity</td>
+<td>Add or remove nodes without downtime; data rebalances itself</td>
+</tr>
+<tr>
+<td>Consistency</td>
+<td><strong>Per-request tunable</strong> — eventual by default, stronger when the caller asks</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>p99 under ~10 ms inside a region</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="single-server-key-value-store">Single-server key-value store<a class="headerlink" href="#single-server-key-value-store" title="Permanent link">&para;</a></h2>
+<p>Easy: an in-memory hash table. Two tricks extend it:</p>
+<ul>
+<li><strong>Compress</strong> values.</li>
+<li>Keep only <strong>hot data in memory</strong>, the rest on <strong>disk</strong>.</li>
+</ul>
+<p>But a single server runs out of memory and disk eventually, and it's a single point of failure. We need a
+<strong>distributed</strong> key-value store (a <em>distributed hash table</em>).</p>
+<hr />
+<h2 id="cap-theorem">CAP theorem<a class="headerlink" href="#cap-theorem" title="Permanent link">&para;</a></h2>
+<p>A distributed system can't simultaneously guarantee all three of:</p>
+<ul>
+<li><strong>Consistency (C)</strong> — a read from any node returns the <strong>most recent write</strong> — all clients agree on the current value.</li>
+<li><strong>Availability (A)</strong> — every request gets a (non-error) response, even if some nodes are down.</li>
+<li><strong>Partition tolerance (P)</strong> — the system keeps working despite <strong>network partitions</strong> (lost/delayed messages between nodes).</li>
+</ul>
+<pre class="mermaid"><code>flowchart TB
+    subgraph CAP
+      C((Consistency)) --- A((Availability))
+      A --- P((Partition&lt;br/&gt;tolerance))
+      P --- C
+    end
+    CP["CP: e.g. HBase, MongoDB (default), etcd/ZooKeeper"] -.-&gt; C
+    AP["AP: e.g. Cassandra, DynamoDB-style, CouchDB"] -.-&gt; A
+    CA["CA: only without partitions —&lt;br/&gt;not a real option for distributed systems"] -.-&gt; P</code></pre>
+<p><strong>The key insight:</strong> in a distributed system, <strong>network partitions will happen</strong> (switches fail, cables get cut,
+GC pauses look like partitions). So "P" isn't optional. The real choice is <strong>what to do <em>during</em> a partition</strong>:</p>
+<h3 id="a-worked-scenario">A worked scenario<a class="headerlink" href="#a-worked-scenario" title="Permanent link">&para;</a></h3>
+<p>Three replicas <strong>n1, n2, n3</strong> hold the key <code>stock:item-77 = 10</code>. The network splits: <strong>n3</strong> can no longer talk to n1/n2.</p>
+<ul>
+<li>A client writes <code>stock:item-77 = 9</code> to <strong>n1</strong>. n1 replicates to n2 — but can't reach n3.</li>
+<li>Another client reads from <strong>n3</strong>.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>What happens</th>
+<th>Good for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CP</strong></td>
+<td>n3 (and possibly the minority side) <strong>refuses</strong> reads/writes it can't confirm are up to date → returns an error/timeout until the partition heals</td>
+<td>Bank balances, inventory with strict no-oversell, leader election</td>
+</tr>
+<tr>
+<td><strong>AP</strong></td>
+<td>n3 <strong>answers with 10</strong> (stale). Writes are accepted on both sides; conflicts are <strong>reconciled after</strong> the partition heals</td>
+<td>Shopping carts, social feeds, likes, session data</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">PACELC — the more complete version</p>
+<p>CAP only talks about partitions. <strong>PACELC</strong> adds: <strong>E</strong>lse (no partition), you still trade <strong>L</strong>atency vs
+<strong>C</strong>onsistency — e.g. waiting for all replicas is consistent but slow. Dynamo/Cassandra: PA/EL. Spanner: PC/EC.</p>
+</div>
+<p>Our store: <strong>AP with tunable consistency.</strong></p>
+<hr />
+<h2 id="system-components">System components<a class="headerlink" href="#system-components" title="Permanent link">&para;</a></h2>
+<p>We'll build up the design from these pieces, most of them borrowed from Amazon's <strong>Dynamo</strong> paper and
+Cassandra/BigTable:</p>
+<ol>
+<li>Data partitioning</li>
+<li>Data replication</li>
+<li>Consistency (quorums)</li>
+<li>Inconsistency resolution (versioning, vector clocks)</li>
+<li>Handling failures (gossip, sloppy quorum, hinted handoff, Merkle trees, DC outages)</li>
+<li>System architecture</li>
+<li>Write path</li>
+<li>Read path</li>
+</ol>
+<h3 id="1-data-partitioning">1 · Data partitioning<a class="headerlink" href="#1-data-partitioning" title="Permanent link">&para;</a></h3>
+<p>Big data can't fit on one server, so we split it. Two goals: <strong>spread data evenly</strong> and <strong>minimise movement
+when nodes join/leave</strong>. That's exactly <strong>consistent hashing</strong> (Chapter 5):</p>
+<ul>
+<li>Servers (as virtual nodes) sit on a hash ring; a key belongs to the first server clockwise.</li>
+<li><strong>Automatic scaling:</strong> adding/removing servers moves only neighbouring arcs.</li>
+<li><strong>Heterogeneity:</strong> bigger servers get more virtual nodes.</li>
+</ul>
+<h3 id="2-data-replication">2 · Data replication<a class="headerlink" href="#2-data-replication" title="Permanent link">&para;</a></h3>
+<p>For durability and availability, each key is stored on <strong>N</strong> servers (N is configurable, commonly 3). Walk
+<strong>clockwise</strong> from the key's position and pick the first <strong>N distinct physical servers</strong> — this is the key's
+<strong>preference list</strong>.</p>
+<pre class="mermaid"><code>flowchart LR
+    K(("key0")) --&gt; S1["s1 (coordinator)"] --&gt; S2[s2] --&gt; S3[s3]
+    S1 -.- n1["replica 1"]
+    S2 -.- n2["replica 2"]
+    S3 -.- n3["replica 3"]</code></pre>
+<ul>
+<li>With virtual nodes, the next N positions might belong to the same physical server → <strong>skip duplicates</strong> so you get N <em>distinct</em> machines.</li>
+<li>Servers in one data center can fail together (power, network) → spread replicas across <strong>racks / availability zones / data centers</strong>.</li>
+</ul>
+<h3 id="3-consistency-with-quorums">3 · Consistency with quorums<a class="headerlink" href="#3-consistency-with-quorums" title="Permanent link">&para;</a></h3>
+<p>Replicas must be kept in sync. Define:</p>
+<ul>
+<li><strong>N</strong> = number of replicas</li>
+<li><strong>W</strong> = write quorum: a write succeeds after <strong>W replicas acknowledge</strong> it</li>
+<li><strong>R</strong> = read quorum: a read succeeds after <strong>R replicas respond</strong></li>
+</ul>
+<p>A <strong>coordinator</strong> (any node that receives the request — a proxy between client and replicas) forwards the
+request to all N replicas and waits for W (or R) responses.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant Co as Coordinator
+    participant A as Replica A
+    participant B as Replica B
+    participant D as Replica C
+    C-&gt;&gt;Co: put(k, v)
+    par fan out to N=3
+      Co-&gt;&gt;A: write
+      Co-&gt;&gt;B: write
+      Co-&gt;&gt;D: write
+    end
+    A--&gt;&gt;Co: ack
+    B--&gt;&gt;Co: ack
+    Note over Co: W=2 acks received → success
+    Co--&gt;&gt;C: OK
+    D--&gt;&gt;Co: ack (late, still applied)</code></pre>
+<p><strong>Why <code>W + R &gt; N</code> gives strong consistency:</strong> the set of W nodes that took the write and the set of R nodes
+you read from must <strong>overlap in at least one node</strong> — so at least one reply carries the latest version.</p>
+<table>
+<thead>
+<tr>
+<th>Config (N = 3)</th>
+<th>Behaviour</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>W=1, R=3</strong></td>
+<td>Writes fast, reads must hit everyone</td>
+<td>Write-heavy, reads rare</td>
+</tr>
+<tr>
+<td><strong>W=3, R=1</strong></td>
+<td>Reads fast, writes wait for all</td>
+<td>Read-heavy, writes rare</td>
+</tr>
+<tr>
+<td><strong>W=2, R=2</strong></td>
+<td>W+R=4 &gt; 3 → <strong>strong consistency</strong> (overlap guaranteed), balanced latency</td>
+<td>The classic default</td>
+</tr>
+<tr>
+<td><strong>W=1, R=1</strong></td>
+<td>W+R=2 ≤ 3 → fastest, <strong>eventual consistency</strong> only</td>
+<td>Caches, metrics, likes</td>
+</tr>
+</tbody>
+</table>
+<p>Latency is determined by the <strong>slowest of the W (or R) replicas you wait for</strong>, so smaller quorums are faster.</p>
+<h3 id="consistency-models">Consistency models<a class="headerlink" href="#consistency-models" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Promise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Strong</strong></td>
+<td>A read always returns the most recently written value. Never stale.</td>
+</tr>
+<tr>
+<td><strong>Weak</strong></td>
+<td>A read may not see the latest write — no guarantees on when.</td>
+</tr>
+<tr>
+<td><strong>Eventual</strong></td>
+<td>A special case of weak: if writes stop, <strong>all replicas converge</strong> to the same value eventually.</td>
+</tr>
+</tbody>
+</table>
+<p>Strong consistency usually requires a replica to <strong>refuse new reads/writes until all replicas agree</strong> on the
+current write — bad for availability. Dynamo and Cassandra choose <strong>eventual consistency</strong>: concurrent writes
+can land on different replicas, so the system must <strong>detect and reconcile conflicts</strong>. That's what versioning does.</p>
+<h3 id="4-inconsistency-resolution-versioning-and-vector-clocks">4 · Inconsistency resolution: versioning and vector clocks<a class="headerlink" href="#4-inconsistency-resolution-versioning-and-vector-clocks" title="Permanent link">&para;</a></h3>
+<p><strong>Versioning</strong> treats every modification as a <strong>new immutable version</strong> of the value. The problem is telling
+apart "B replaced A" (just keep B) from "A and B were written concurrently" (a <strong>conflict</strong> to merge).</p>
+<p>A <strong>vector clock</strong> is a list of <code>[server, counter]</code> pairs attached to each version: <code>D([S1, v1], [S2, v2], …)</code>.
+When server Si writes a version:</p>
+<ul>
+<li>If <code>[Si, vi]</code> exists in the clock, increment vi.</li>
+<li>Otherwise, add <code>[Si, 1]</code>.</li>
+</ul>
+<p><strong>Comparing two versions X and Y:</strong></p>
+<ul>
+<li>X is an <strong>ancestor</strong> of Y (no conflict — Y wins) if <strong>every counter in X ≤ the matching counter in Y</strong>.</li>
+<li>X and Y are <strong>siblings</strong> (conflict) if each has some counter <strong>greater</strong> than the other's.</li>
+</ul>
+<p><strong>Worked example — a shopping cart under a partition:</strong></p>
+<pre class="mermaid"><code>flowchart TB
+    D1["D1 · cart = [milk]&lt;br/&gt;clock: (A,1)"] --&gt;|"written via node A"| D2["D2 · cart = [milk, bread]&lt;br/&gt;clock: (A,2)"]
+    D2 --&gt;|"phone writes via B (partition!)"| D3["D3 · [milk, bread, eggs]&lt;br/&gt;clock: (A,2),(B,1)"]
+    D2 --&gt;|"laptop writes via C"| D4["D4 · [milk, bread, tea]&lt;br/&gt;clock: (A,2),(C,1)"]
+    D3 --&gt; D5["D5 · merged by client · [milk, bread, eggs, tea]&lt;br/&gt;clock: (A,3),(B,1),(C,1)"]
+    D4 --&gt; D5</code></pre>
+<ol>
+<li>Node A writes <code>[milk]</code> → D1 <code>(A,1)</code>; then <code>[milk, bread]</code> → D2 <code>(A,2)</code>. D1 is an ancestor of D2 — D1 can be discarded.</li>
+<li>A partition happens. The user's <strong>phone</strong> adds eggs via node <strong>B</strong> → D3 <code>(A,2),(B,1)</code>. The <strong>laptop</strong> adds tea via node <strong>C</strong> → D4 <code>(A,2),(C,1)</code>.</li>
+<li>A later read gets <strong>both</strong> D3 and D4. Compare: D3 has <code>B:1 &gt; 0</code>, D4 has <code>C:1 &gt; 0</code> → neither is an ancestor → <strong>conflict</strong>.</li>
+<li>The <strong>client</strong> reconciles (for a cart: union of items) and writes back via A → D5 <code>(A,3),(B,1),(C,1)</code>, which descends from both.</li>
+</ol>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">enum</span><span class="w"> </span><span class="n">Order</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">BEFORE</span><span class="p">,</span><span class="w"> </span><span class="n">AFTER</span><span class="p">,</span><span class="w"> </span><span class="n">EQUAL</span><span class="p">,</span><span class="w"> </span><span class="n">CONCURRENT</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kd">static</span><span class="w"> </span><span class="n">Order</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="kt">boolean</span><span class="w"> </span><span class="n">xBigger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">yBigger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="n">Set</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashSet</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="na">keySet</span><span class="p">());</span><span class="w"> </span><span class="n">nodes</span><span class="p">.</span><span class="na">addAll</span><span class="p">(</span><span class="n">y</span><span class="p">.</span><span class="na">keySet</span><span class="p">());</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">nodes</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="p">.</span><span class="na">getOrDefault</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y</span><span class="p">.</span><span class="na">getOrDefault</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="n">xBigger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="p">)</span><span class="w"> </span><span class="n">yBigger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">xBigger</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">yBigger</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Order</span><span class="p">.</span><span class="na">CONCURRENT</span><span class="p">;</span><span class="w">   </span><span class="c1">// siblings → conflict</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">xBigger</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Order</span><span class="p">.</span><span class="na">AFTER</span><span class="p">;</span><span class="w">                   </span><span class="c1">// x descends from y</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">yBigger</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Order</span><span class="p">.</span><span class="na">BEFORE</span><span class="p">;</span><span class="w">                  </span><span class="c1">// y descends from x</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Order</span><span class="p">.</span><span class="na">EQUAL</span><span class="p">;</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Downsides of vector clocks:</strong></p>
+<ul>
+<li><strong>Complexity pushed to clients</strong> — they must implement merge logic per data type.</li>
+<li><strong>Clocks grow</strong> with every server that coordinated a write. Fix: cap the length (e.g. 10 entries) and drop the oldest; this can occasionally fail to detect ancestry (rare, accepted in Dynamo's experience).</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Alternatives you can mention</p>
+<p><strong>Last-write-wins (LWW)</strong> with timestamps (Cassandra's default): simple, but silently <strong>loses</strong> one of two concurrent
+writes and depends on clock sync. <strong>CRDTs</strong> (conflict-free replicated data types — counters, sets, maps that merge
+automatically) avoid client-side merge code; used by Riak, Redis Enterprise, collaborative editors.</p>
+</div>
+<h3 id="5-handling-failures">5 · Handling failures<a class="headerlink" href="#5-handling-failures" title="Permanent link">&para;</a></h3>
+<p>At scale, failures aren't exceptional — they're constant. We need to <strong>detect</strong> them and <strong>resolve</strong> them.</p>
+<h4 id="failure-detection-gossip">Failure detection: gossip<a class="headerlink" href="#failure-detection-gossip" title="Permanent link">&para;</a></h4>
+<p>You can't declare a server dead because <em>one</em> other server says so. Asking every node to ping every other node
+(<strong>all-to-all multicasting</strong>) is correct but O(n²) messages — too much with hundreds of nodes.</p>
+<p><strong>Gossip protocol</strong> (decentralised failure detection):</p>
+<ol>
+<li>Each node keeps a <strong>membership list</strong>: member ID → heartbeat counter + local time it last increased.</li>
+<li>Each node <strong>increments its own heartbeat</strong> periodically.</li>
+<li>Periodically, each node sends its list to a few <strong>random</strong> nodes, who merge it (keeping the higher counters) and pass it on.</li>
+<li>If a member's heartbeat hasn't increased for a <strong>threshold</strong> period, it's considered <strong>offline</strong>.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Node s0's view</th>
+<th>Heartbeat</th>
+<th>Last increased (s0's clock)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>s0</td>
+<td>1820</td>
+<td>10:41:07</td>
+</tr>
+<tr>
+<td>s1</td>
+<td>1793</td>
+<td>10:41:05</td>
+</tr>
+<tr>
+<td><strong>s2</strong></td>
+<td><strong>1650</strong></td>
+<td><strong>10:39:22</strong> ← stale for 100 s → suspect s2 is down</td>
+</tr>
+<tr>
+<td>s3</td>
+<td>1802</td>
+<td>10:41:06</td>
+</tr>
+</tbody>
+</table>
+<p>s0 then gossips "s2 looks down" to others; once several independently agree, s2 is marked down.</p>
+<h4 id="temporary-failures-sloppy-quorum-hinted-handoff">Temporary failures: sloppy quorum + hinted handoff<a class="headerlink" href="#temporary-failures-sloppy-quorum-hinted-handoff" title="Permanent link">&para;</a></h4>
+<p>A strict quorum blocks reads/writes when too few of the key's <em>designated</em> N replicas are up — bad for availability.</p>
+<p><strong>Sloppy quorum:</strong> instead of insisting on the designated replicas, pick the <strong>first W (or R) healthy servers</strong>
+on the ring, skipping the dead ones.</p>
+<p><strong>Hinted handoff:</strong> if server s2 is down, its writes go to the next healthy server, say s4, <strong>with a hint</strong>
+("this belongs to s2"). When s2 comes back (gossip tells us), s4 <strong>hands the data back</strong> and deletes its copy.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant Co as Coordinator
+    participant S1 as s1
+    participant S2 as s2 (down)
+    participant S4 as s4 (stand-in)
+    Co-&gt;&gt;S1: write k
+    Co-xS2: write k (timeout)
+    Co-&gt;&gt;S4: write k + hint "owner = s2"
+    Note over S2: ...comes back online
+    S4-&gt;&gt;S2: hand off k
+    S4-&gt;&gt;S4: delete hinted copy</code></pre>
+<h4 id="permanent-failures-anti-entropy-with-merkle-trees">Permanent failures: anti-entropy with Merkle trees<a class="headerlink" href="#permanent-failures-anti-entropy-with-merkle-trees" title="Permanent link">&para;</a></h4>
+<p>If a replica is gone for a long time (or hinted data was lost), replicas <strong>diverge</strong>. We need to sync them, but
+comparing every key across terabytes is too expensive. A <strong>Merkle tree</strong> (hash tree) lets two replicas find the
+differences while transferring very little.</p>
+<p><strong>Building it</strong> (say keys hash into a range split into 8 buckets):</p>
+<ol>
+<li>Split the key space into <strong>buckets</strong>.</li>
+<li>Hash each key's value; then compute <strong>one hash per bucket</strong> from its keys' hashes.</li>
+<li>Build a binary tree upward: each parent = hash(left child + right child). The root summarises everything.</li>
+</ol>
+<pre class="mermaid"><code>flowchart TB
+    R["root: H(ab|cd)"] --&gt; AB["H(a|b)"] &amp; CD["H(c|d)"]
+    AB --&gt; A["a = H(b1|b2)"] &amp; B["b = H(b3|b4)"]
+    CD --&gt; C["c = H(b5|b6)"] &amp; D["d = H(b7|b8)"]
+    A --&gt; b1[bucket 1] &amp; b2[bucket 2]
+    B --&gt; b3[bucket 3] &amp; b4[bucket 4]
+    C --&gt; b5[bucket 5] &amp; b6["bucket 6 ⚠"]
+    D --&gt; b7[bucket 7] &amp; b8[bucket 8]</code></pre>
+<p><strong>Comparing two replicas:</strong> compare roots. Equal → in sync, done. Different → compare the two children, recurse
+only into the subtree whose hashes differ. Here only the path root → CD → c → bucket 6 differs, so only
+<strong>bucket 6's keys</strong> are exchanged.</p>
+<p>Work is proportional to the <strong>differences</strong>, not the data size. Example: 1 billion keys in 1 million buckets
+→ ~1,000 keys per bucket; if one key differs, you walk ~20 levels and ship ~1,000 keys instead of 1 billion.</p>
+<h4 id="data-center-outage">Data center outage<a class="headerlink" href="#data-center-outage" title="Permanent link">&para;</a></h4>
+<p>Power cuts, network failures and natural disasters take out whole DCs. Replicate across <strong>multiple data centers</strong>
+so users can still read/write from another one.</p>
+<h3 id="6-system-architecture">6 · System architecture<a class="headerlink" href="#6-system-architecture" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    Cl[Client] --&gt;|"get / put"| Co["Coordinator node&lt;br/&gt;(any node)"]
+    Co --&gt; n1[node] &amp; n2[node] &amp; n3[node]
+    subgraph Ring["Hash ring — every node identical"]
+      n1 --- n2 --- n3 --- n4[node] --- n5[node] --- n6[node] --- n1
+    end</code></pre>
+<p>There is <strong>no master</strong>. Any node can receive a client's <code>get</code>/<code>put</code>; for that request it acts as the
+<strong>coordinator</strong>, works out the key's preference list from the ring, and talks to those replicas. Because every
+node runs identical software — request handling, gossip membership, replication, hinted-handoff storage,
+anti-entropy and the local LSM storage engine — you scale by adding identical boxes, and losing any one box
+loses nothing unique. (Some clients skip the extra hop by being "ring-aware" and sending the request straight
+to a replica.)</p>
+<h3 id="7-write-path-lsm-tree-as-in-cassandra">7 · Write path (LSM-tree, as in Cassandra)<a class="headerlink" href="#7-write-path-lsm-tree-as-in-cassandra" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    W["put(k, v)"] --&gt; L["1 · append to&lt;br/&gt;commit log (disk)"]
+    L --&gt; M["2 · write to&lt;br/&gt;memtable (memory, sorted)"]
+    M --&gt;|"3 · memtable full → flush"| S["SSTable (immutable,&lt;br/&gt;sorted, on disk)"]
+    S -.-&gt;|background| CP["compaction:&lt;br/&gt;merge SSTables, drop&lt;br/&gt;overwritten/deleted keys"]</code></pre>
+<ol>
+<li>The write is appended to a <strong>commit log</strong> (sequential disk write — fast, and lets us recover the memtable after a crash).</li>
+<li>It's inserted into the <strong>memtable</strong>, an in-memory sorted structure.</li>
+<li>When the memtable reaches a threshold, it's <strong>flushed</strong> to disk as an <strong>SSTable</strong> (Sorted String Table): an immutable, sorted file of key-value pairs.</li>
+<li><strong>Compaction</strong> merges SSTables in the background, discarding overwritten values and <strong>tombstones</strong> (deletion markers).</li>
+</ol>
+<p>Why this design? Writes are <strong>sequential</strong> (no random disk seeks — recall Chapter 2's latency table), so write
+throughput is huge.</p>
+<h3 id="8-read-path">8 · Read path<a class="headerlink" href="#8-read-path" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    R["get(k)"] --&gt; M{in memtable?}
+    M --&gt;|yes| RET[return value]
+    M --&gt;|no| BF{"Bloom filters:&lt;br/&gt;which SSTables&lt;br/&gt;might have k?"}
+    BF --&gt; SS["read only those SSTables&lt;br/&gt;(newest first)"] --&gt; RET</code></pre>
+<ol>
+<li>Check the <strong>memtable</strong> — if found, return it.</li>
+<li>Otherwise, consult each SSTable's <strong>Bloom filter</strong> to find which SSTables <em>might</em> contain the key.</li>
+<li>Read those SSTables (newest first) and return the value.</li>
+</ol>
+<p><strong>Bloom filter</strong> in one paragraph: a bit array plus k hash functions. To add a key, set the k bits it hashes to.
+To query, check those k bits: if <strong>any is 0</strong>, the key is <strong>definitely not</strong> there; if all are 1, it's
+<strong>probably</strong> there. No false negatives, tunable false positives (~1% with ~10 bits per key). It lets the read
+path skip almost every SSTable that can't contain the key.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">final</span><span class="w"> </span><span class="kd">class</span> <span class="nc">BloomFilter</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">BitSet</span><span class="w"> </span><span class="n">bits</span><span class="p">;</span><span class="w"> </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="n">BloomFilter</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">BitSet</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">idx</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">                 </span><span class="c1">// double hashing: h1 + i*h2</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">h1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">hashCode</span><span class="p">(),</span><span class="w"> </span><span class="n">h2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">h1</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">16</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">floorMod</span><span class="p">(</span><span class="n">h1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h2</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">);</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w">              </span><span class="p">{</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="na">set</span><span class="p">(</span><span class="n">idx</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">));</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">mightContain</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">bits</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">idx</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">)))</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="putting-it-together-the-requests-journey">Putting it together: the request's journey<a class="headerlink" href="#putting-it-together-the-requests-journey" title="Permanent link">&para;</a></h2>
+<p>The fastest way to revise this chapter is to follow one write and one read through every mechanism:</p>
+<table>
+<thead>
+<tr>
+<th>Moment</th>
+<th>What happens</th>
+<th>Mechanism</th>
+<th>What it costs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Client calls <code>put(k, v)</code></td>
+<td>Any node becomes coordinator; it hashes <code>k</code> onto the ring</td>
+<td>Consistent hashing + vnodes</td>
+<td>Ring metadata on every node</td>
+</tr>
+<tr>
+<td>Coordinator picks replicas</td>
+<td>First N distinct physical nodes clockwise, across racks/DCs</td>
+<td>Preference list</td>
+<td>Cross-DC bandwidth</td>
+</tr>
+<tr>
+<td>One replica is down</td>
+<td>Next healthy node stores the write with a hint</td>
+<td>Sloppy quorum + hinted handoff</td>
+<td>Quorum overlap no longer guaranteed</td>
+</tr>
+<tr>
+<td>W acks arrive</td>
+<td>Client gets OK; stragglers still apply it</td>
+<td>Quorum (N, W, R)</td>
+<td>Latency = slowest of the W</td>
+</tr>
+<tr>
+<td>On each replica</td>
+<td>Append to commit log, insert into memtable, later flush to SSTable</td>
+<td>LSM storage engine</td>
+<td>Compaction I/O in the background</td>
+</tr>
+<tr>
+<td>Later, <code>get(k)</code></td>
+<td>Coordinator asks replicas, waits for R; sees two versions</td>
+<td>Vector clocks</td>
+<td>Clients must merge siblings</td>
+</tr>
+<tr>
+<td>Versions differed</td>
+<td>Coordinator writes the newest back to stale replicas</td>
+<td>Read repair</td>
+<td>Extra writes on reads</td>
+</tr>
+<tr>
+<td>On a replica, looking up <code>k</code></td>
+<td>Memtable first, then only SSTables whose Bloom filter says "maybe"</td>
+<td>Bloom filters</td>
+<td>~10 bits of RAM per key</td>
+</tr>
+<tr>
+<td>All the while</td>
+<td>Nodes exchange heartbeats with random peers</td>
+<td>Gossip</td>
+<td>Detection takes seconds, not milliseconds</td>
+</tr>
+<tr>
+<td>Periodically</td>
+<td>Replicas compare hash trees and sync only differing ranges</td>
+<td>Merkle-tree anti-entropy</td>
+<td>Tree rebuilds when ranges change</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="interviewer-follow-ups">Interviewer follow-ups<a class="headerlink" href="#interviewer-follow-ups" title="Permanent link">&para;</a></h2>
+<details class="question">
+<summary>With N=3, W=2, R=2, can a read still return stale data?</summary>
+<p>In the steady state, no — the read set and write set overlap. But edge cases exist: with a <strong>sloppy quorum</strong>, the W
+acks may come from stand-in nodes outside the designated replicas, so the overlap guarantee breaks; concurrent writes
+can produce siblings; and a write that failed (fewer than W acks) may still have landed on some replicas. That's why
+Dynamo-style systems call this "tunable" consistency, not linearizability.</p>
+</details>
+<details class="question">
+<summary>What's read repair?</summary>
+<p>When a coordinator does a quorum read and sees replicas returning <strong>different versions</strong>, it returns the newest (or
+siblings) to the client and <strong>writes the latest version back</strong> to the stale replicas. It fixes divergence on hot keys
+cheaply; Merkle-tree anti-entropy handles cold keys that are rarely read.</p>
+</details>
+<details class="question">
+<summary>Why not just use timestamps (last-write-wins) instead of vector clocks?</summary>
+<p>LWW is simpler and widely used (Cassandra). But clocks on different machines drift, and LWW <strong>silently drops</strong> one of
+two concurrent writes — fine for "last known location", wrong for a shopping cart where both additions matter.
+Vector clocks <em>detect</em> concurrency so you can merge; CRDTs merge automatically for suitable data types.</p>
+</details>
+<details class="question">
+<summary>How would you delete a key in this system?</summary>
+<p>You can't just remove it — a replica that missed the delete would "resurrect" the key during anti-entropy. Instead
+write a <strong>tombstone</strong> (a deletion marker with a version). Tombstones propagate like normal writes and are purged during
+compaction only after a grace period long enough for all replicas to have seen them (Cassandra: <code>gc_grace_seconds</code>).</p>
+</details>
+<details class="question">
+<summary>When would you choose a CP store instead?</summary>
+<p>When correctness under partition beats availability: leader election and locks (etcd/ZooKeeper), financial ledgers,
+inventory where overselling is unacceptable, unique-username registration. These use consensus (Raft/Paxos) and
+reject requests on the minority side of a partition.</p>
+</details>
+<details class="question">
+<summary>How does a node joining the cluster get its data?</summary>
+<p>It's assigned vnodes (tokens) on the ring; for each new arc, it <strong>streams</strong> the relevant key ranges from the current
+owners (the next replicas clockwise). Until streaming finishes, reads can still be served by the old owners; gossip
+spreads the new membership so coordinators start routing to it.</p>
+</details>
+<hr />
+<h2 id="practice">Practice<a class="headerlink" href="#practice" title="Permanent link">&para;</a></h2>
+<details class="example">
+<summary>Practice 1 — Pick N, W, R</summary>
+<p>(a) A session store: 10:1 reads to writes, stale-by-a-second is fine, must stay up. (b) A configuration store where a
+read must reflect the last write. N=3 in both. Choose W and R.</p>
+<p><strong>Solution.</strong> (a) <strong>W=1, R=1</strong> (or W=2,R=1) — fast and highly available; eventual consistency is acceptable.
+(b) <strong>W=2, R=2</strong> (W+R &gt; N), or W=3, R=1 if writes are rare and reads must be fastest. If a partition must never yield
+stale reads, use a CP system (etcd) instead.</p>
+</details>
+<details class="example">
+<summary>Practice 2 — Compare vector clocks</summary>
+<p>For each pair, say ancestor/descendant or conflict:
+(i) <code>(A,2),(B,1)</code> vs <code>(A,3),(B,1)</code> · (ii) <code>(A,1),(C,2)</code> vs <code>(A,2),(B,1)</code> · (iii) <code>(A,1)</code> vs <code>(A,1),(B,4)</code></p>
+<p><strong>Solution.</strong> (i) first is an <strong>ancestor</strong> of the second (2≤3, 1≤1). (ii) <strong>conflict</strong> — first has C:2 &gt; 0, second has
+A:2 &gt; 1 and B:1 &gt; 0. (iii) first is an <strong>ancestor</strong> (missing B counts as 0 ≤ 4).</p>
+</details>
+<details class="example">
+<summary>Practice 3 — Bloom filter sizing</summary>
+<p>A node has 200 million keys across its SSTables. You want ~1% false positives. Roughly how much memory do the Bloom
+filters need?</p>
+<p><strong>Solution.</strong> ~9.6 bits/key for 1% (optimal k ≈ 7) → 200M × 9.6 bits ≈ 1.92 × 10⁹ bits ≈ <strong>240 MB</strong>. Cheap compared to
+avoiding disk reads for absent keys.</p>
+</details>
+<details class="example">
+<summary>Practice 4 — Merkle tree savings</summary>
+<p>Two replicas each hold 500M keys in 2²⁰ (~1M) buckets. 300 keys differ, all in different buckets. How many buckets'
+worth of keys are transferred?</p>
+<p><strong>Solution.</strong> Only the 300 differing buckets (~500 keys each) → ~150K keys transferred, instead of 500M — about
+0.03% of the data. The tree walk compares ~300 × 20 node hashes.</p>
+</details>
+<hr />
+<h2 id="revision-checklist">Revision checklist<a class="headerlink" href="#revision-checklist" title="Permanent link">&para;</a></h2>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can state CAP correctly ("during a partition, choose C or A") and give CP/AP examples, plus PACELC.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can explain partitioning + replication with a preference list of N distinct servers.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can explain N/W/R, why <code>W + R &gt; N</code> gives overlap, and pick values for a use case.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can define strong / weak / eventual consistency.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can run a vector-clock example and decide ancestor vs conflict; I know LWW and CRDTs as alternatives.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can explain gossip, sloppy quorum, hinted handoff, Merkle trees and tombstones.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> I can draw the LSM write path and read path and explain how a Bloom filter works.</li>
+</ul>
+<p><a class="md-button md-button--primary" href="../07-unique-id-generator/">Next: 07 · Unique ID Generator <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg></span></a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../05-consistent-hashing/" class="md-footer__link md-footer__link--prev" aria-label="Previous: 05 · Consistent Hashing">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                05 · Consistent Hashing
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../07-unique-id-generator/" class="md-footer__link md-footer__link--next" aria-label="Next: 07 · Unique ID Generator">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                07 · Unique ID Generator
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Notes &amp; diagrams by Jayant Kapoor · Companion to Alex Xu's <em>System Design Interview</em> — please buy the book to support the author.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://jayantkapoor.com" target="_blank" rel="noopener" title="jayantkapoor.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/JayKap-Git" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.top", "navigation.footer", "navigation.indexes", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../assets/javascripts/widgets.js"></script>
+      
+    
+  </body>
+</html>
