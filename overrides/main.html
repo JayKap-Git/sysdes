@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block announce %}
+  {% if config.theme.language == "en" and page and page.url and page.url.startswith("hi/") %}
+    Aap Hinglish version padh rahe ho · English ke liye header mein <strong>🌐 language</strong> switch use karo
+  {% else %}
+    Read every chapter in <strong>English</strong> or <strong>Hinglish</strong> — use the 🌐 switch in the header
+  {% endif %}
+{% endblock %}

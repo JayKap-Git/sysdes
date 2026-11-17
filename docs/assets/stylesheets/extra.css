@@ -1,0 +1,249 @@
+/* ==========================================================================
+   SysDes — custom theme layer on top of Material for MkDocs
+   ========================================================================== */
+
+:root {
+  --sd-ink: #0f4c5c;
+  --sd-ink-2: #12657a;
+  --sd-ember: #e36414;
+  --sd-sand: #fbf7f0;
+  --sd-card-border: rgba(15, 76, 92, 0.14);
+  --sd-soft: rgba(15, 76, 92, 0.06);
+}
+
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: var(--sd-ink);
+  --md-primary-fg-color--light: var(--sd-ink-2);
+  --md-primary-fg-color--dark: #0a3540;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.7);
+}
+
+[data-md-color-accent="custom"] {
+  --md-accent-fg-color: var(--sd-ember);
+  --md-accent-fg-color--transparent: rgba(227, 100, 20, 0.1);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #12161c;
+  --md-default-bg-color--light: #171c23;
+  --sd-card-border: rgba(140, 200, 215, 0.16);
+  --sd-soft: rgba(140, 200, 215, 0.06);
+  --md-typeset-a-color: #6cc4d8;
+}
+
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] {
+  --md-primary-fg-color: #0c2f39;
+  --md-primary-fg-color--dark: #08222a;
+}
+
+/* ---------- Typography ---------- */
+.md-typeset {
+  font-size: 0.8rem;
+  line-height: 1.75;
+}
+.md-typeset h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--md-default-fg-color);
+}
+.md-typeset h2 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid var(--sd-card-border);
+  padding-bottom: 0.25em;
+  margin-top: 2.2em;
+}
+.md-typeset h3 { font-weight: 650; }
+.md-typeset code { border-radius: 4px; }
+.md-typeset mark { background: rgba(227, 100, 20, 0.18); color: inherit; border-radius: 3px; padding: 0 2px; }
+
+/* ---------- Chapter header strip ---------- */
+.md-typeset .chapter-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: -0.4rem 0 1.4rem;
+}
+.md-typeset .chapter-meta span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--sd-soft);
+  border: 1px solid var(--sd-card-border);
+}
+.md-typeset .chapter-meta span.hot { background: rgba(227, 100, 20, 0.12); border-color: rgba(227, 100, 20, 0.35); }
+
+/* ---------- Tables ---------- */
+.md-typeset table:not([class]) {
+  font-size: 0.72rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--sd-card-border);
+}
+.md-typeset table:not([class]) th {
+  background: var(--sd-soft);
+  font-weight: 700;
+}
+
+/* ---------- Mermaid ---------- */
+.md-typeset .mermaid {
+  text-align: center;
+  margin: 1.2em 0;
+  padding: 0.8rem;
+  border: 1px solid var(--sd-card-border);
+  border-radius: 10px;
+  background: var(--md-default-bg-color);
+}
+
+/* ---------- Figures (hand-drawn SVG diagrams) ---------- */
+.md-typeset figure.diagram {
+  margin: 1.4em auto;
+  padding: 0.8rem;
+  border: 1px solid var(--sd-card-border);
+  border-radius: 10px;
+}
+.md-typeset figure.diagram svg { max-width: 100%; height: auto; }
+.md-typeset figure.diagram figcaption { font-size: 0.68rem; opacity: 0.8; }
+.md-typeset figure.diagram svg text { fill: var(--md-default-fg-color); font-family: var(--md-text-font-family); }
+.md-typeset figure.diagram svg .stroke { stroke: var(--md-default-fg-color--light); }
+.md-typeset figure.diagram svg .accent { fill: var(--sd-ember); }
+.md-typeset figure.diagram svg .ink { fill: var(--sd-ink-2); }
+
+/* ---------- Home page ---------- */
+.md-typeset .sd-hero {
+  padding: 2.2rem 1.6rem 1.8rem;
+  border-radius: 16px;
+  margin: 0 0 1.6rem;
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(227, 100, 20, 0.35), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(108, 196, 216, 0.25), transparent 50%),
+    linear-gradient(135deg, #0a3540 0%, #0f4c5c 55%, #12657a 100%);
+}
+.md-typeset .sd-hero h1 { color: #fff; margin: 0 0 0.4rem; font-size: 2.1rem; }
+.md-typeset .sd-hero p { margin: 0.4rem 0; max-width: 46rem; opacity: 0.95; }
+.md-typeset .sd-hero .md-button { color: #fff; border-color: rgba(255,255,255,0.6); margin-top: 0.6rem; }
+.md-typeset .sd-hero .md-button--primary { background: var(--sd-ember); border-color: var(--sd-ember); }
+.md-typeset .sd-hero .md-button:hover { background: #fff; color: var(--sd-ink); border-color: #fff; }
+
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border-radius: 12px;
+  border: 1px solid var(--sd-card-border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.md-typeset .grid.cards > ul > li:hover {
+  transform: translateY(-2px);
+  border-color: var(--sd-ember);
+  box-shadow: 0 6px 18px rgba(15, 76, 92, 0.12);
+}
+
+/* ---------- Admonition tweaks ---------- */
+.md-typeset .admonition, .md-typeset details { border-radius: 8px; font-size: 0.76rem; }
+
+/* custom "interview" admonition */
+:root {
+  --md-admonition-icon--interview: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-10 10 10 10 0 0 0 10 10h8a2 2 0 0 0 2-2v-8A10 10 0 0 0 12 2m-1 5h2v6h-2zm0 8h2v2h-2z"/></svg>');
+  --md-admonition-icon--desi: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 3.58-9 8 0 2.13.94 4.07 2.47 5.5L5 21l4.31-2.16c.86.24 1.76.36 2.69.36 4.97 0 9-3.58 9-8s-4.03-8-9-8m-4 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m4 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m4 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>');
+}
+.md-typeset .admonition.interview, .md-typeset details.interview { border-color: #8e44ad; }
+.md-typeset .interview > .admonition-title, .md-typeset .interview > summary { background-color: rgba(142, 68, 173, 0.1); }
+.md-typeset .interview > .admonition-title::before, .md-typeset .interview > summary::before {
+  background-color: #8e44ad;
+  -webkit-mask-image: var(--md-admonition-icon--interview);
+  mask-image: var(--md-admonition-icon--interview);
+}
+.md-typeset .admonition.desi, .md-typeset details.desi { border-color: var(--sd-ember); }
+.md-typeset .desi > .admonition-title, .md-typeset .desi > summary { background-color: rgba(227, 100, 20, 0.1); }
+.md-typeset .desi > .admonition-title::before, .md-typeset .desi > summary::before {
+  background-color: var(--sd-ember);
+  -webkit-mask-image: var(--md-admonition-icon--desi);
+  mask-image: var(--md-admonition-icon--desi);
+}
+
+/* ---------- Interactive widgets ---------- */
+.sd-widget {
+  border: 1px solid var(--sd-card-border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin: 1.4em 0;
+  background: var(--sd-soft);
+  font-size: 0.74rem;
+}
+.sd-widget .sd-w-title {
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.sd-widget .sd-w-title::before {
+  content: "▶";
+  font-size: 0.6rem;
+  color: var(--sd-ember);
+}
+.sd-widget .sd-w-row { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; margin: 0.4rem 0; }
+.sd-widget label { display: inline-flex; flex-direction: column; gap: 0.15rem; font-weight: 600; font-size: 0.66rem; }
+.sd-widget input[type="number"], .sd-widget select {
+  width: 8.5rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--sd-card-border);
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  font: inherit;
+}
+.sd-widget input[type="range"] { width: 9rem; accent-color: var(--sd-ember); }
+.sd-widget button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--sd-ink-2);
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  cursor: pointer;
+}
+.sd-widget button.primary { background: var(--sd-ink-2); color: #fff; }
+.sd-widget button:hover { border-color: var(--sd-ember); }
+.sd-widget .sd-out {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+.sd-widget .sd-stat {
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--sd-card-border);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+}
+.sd-widget .sd-stat b { display: block; font-size: 0.95rem; }
+.sd-widget .sd-stat small { opacity: 0.7; }
+.sd-widget .sd-log {
+  font-family: var(--md-code-font-family);
+  font-size: 0.64rem;
+  max-height: 9rem;
+  overflow: auto;
+  background: var(--md-default-bg-color);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--sd-card-border);
+}
+.sd-widget .ok { color: #2e8b57; }
+.sd-widget .bad { color: #d64545; }
+.sd-widget svg { max-width: 100%; height: auto; display: block; margin: 0.4rem auto; }
+.sd-widget .bits { display: flex; flex-wrap: wrap; font-family: var(--md-code-font-family); font-size: 0.6rem; gap: 1px; margin-top: 0.5rem; }
+.sd-widget .bits span { padding: 0.15rem 0.1rem; border-radius: 2px; min-width: 0.7rem; text-align: center; }
+.sd-widget .bits .b-sign { background: #9e9e9e33; }
+.sd-widget .bits .b-ts { background: rgba(18, 101, 122, 0.25); }
+.sd-widget .bits .b-dc { background: rgba(227, 100, 20, 0.3); }
+.sd-widget .bits .b-mc { background: rgba(142, 68, 173, 0.3); }
+.sd-widget .bits .b-seq { background: rgba(46, 139, 87, 0.3); }
+
+/* ---------- Language hint pill in header ---------- */
+.md-header__option .md-select__link { font-weight: 600; }
