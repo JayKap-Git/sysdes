@@ -74,7 +74,7 @@ But a single server runs out of memory and disk eventually, and it's a single po
 
 A distributed system can't simultaneously guarantee all three of:
 
-- **Consistency (C)** — every client sees the **same data at the same time**, no matter which node it talks to.
+- **Consistency (C)** — a read from any node returns the **most recent write** — all clients agree on the current value.
 - **Availability (A)** — every request gets a (non-error) response, even if some nodes are down.
 - **Partition tolerance (P)** — the system keeps working despite **network partitions** (lost/delayed messages between nodes).
 

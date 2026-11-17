@@ -27,7 +27,7 @@ logon ko bahar ki bheed se koi nuksaan nahi hota.
 Rate limiter tumhari API ka wahi turnstile hai. Rules ke examples:
 
 - Ek user **1 second mein max 2 posts** kar sakta hai.
-- Ek IP se **din mein max 10 accounts**.
+- Ek IP address se **ghante mein max 5 sign-ups**.
 - Ek device **hafte mein max 5 baar** reward claim kar sakta hai.
 - Ek phone number pe **10 minute mein max 3 OTP**.
 

@@ -27,7 +27,7 @@ inside the station is harmed by the crowd outside.
 A rate limiter is that turnstile for your API. Examples of rules:
 
 - A user can post at most **2 times per second**.
-- At most **10 accounts per day** from the same IP.
+- At most **5 sign-ups per hour** from one IP address.
 - A device can claim a reward at most **5 times per week**.
 - An OTP can be requested at most **3 times per 10 minutes** per phone number.
 
