@@ -134,7 +134,7 @@ S0 ki thi; ab S4 le leta hai.
 server** (S2) pe jaati hain. Baaki sab wahin rehte hain.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph B1["Pehle"]
       direction LR
       a1["S0 arc"] --- b1["S1 arc · k1 yahan"] --- c1["S2 arc"]

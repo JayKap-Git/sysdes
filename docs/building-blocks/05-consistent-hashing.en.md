@@ -137,7 +137,7 @@ Remove **S1**. Only the keys in the arc between S0 (anticlockwise neighbour) and
 and they move to the **next server clockwise** (S2). Everyone else stays put.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph B1["Before"]
       direction LR
       a1["S0 arc"] --- b1["S1 arc · holds k1"] --- c1["S2 arc"]
