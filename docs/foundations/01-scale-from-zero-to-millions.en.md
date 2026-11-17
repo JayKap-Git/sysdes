@@ -45,9 +45,9 @@ sequenceDiagram
     participant U as User (browser / app)
     participant D as DNS
     participant S as Web server
-    U->>D: Where is api.mysite.com?
-    D-->>U: 15.125.23.214
-    U->>S: GET /users/12 (HTTP)
+    U->>D: Where is shop.example.in?
+    D-->>U: 203.0.113.42
+    U->>S: GET /products/42 (HTTP)
     S->>S: run business logic, read DB
     S-->>U: 200 OK + JSON / HTML
 ```
@@ -56,7 +56,7 @@ sequenceDiagram
 2. The client sends an **HTTP request** straight to that IP.
 3. The server returns **HTML** (for browsers) or **JSON** (for mobile apps and SPAs).
 
-Traffic comes from two kinds of clients: **web apps** (server-side code in Java/Python/Go plus HTML/JS in the browser) and **mobile apps** (talk to the server over HTTP, usually exchanging JSON, e.g. `GET /users/12 → {"id":12,"name":"Asha"}`).
+Traffic comes from two kinds of clients: **web apps** (server-side code in Java/Python/Go plus HTML/JS in the browser) and **mobile apps** (talk to the server over HTTP, usually exchanging JSON, e.g. `GET /products/42 → {"id":42,"name":"Kurta","price":899}`).
 
 !!! warning "Why this can't last"
     One machine = one **single point of failure (SPOF)**. If it reboots, the product is down. And
@@ -299,15 +299,15 @@ sequenceDiagram
     participant E as CDN edge (Mumbai)
     participant O as Origin (S3 / web server)
     participant B as User B (Pune)
-    A->>E: GET cdn.mysite.com/logo.png
+    A->>E: GET cdn.example.in/logo.png
     E->>O: miss → fetch logo.png
     O-->>E: logo.png + Cache-Control TTL
     E-->>A: logo.png (now cached at edge)
-    B->>E: GET cdn.mysite.com/logo.png
+    B->>E: GET cdn.example.in/logo.png
     E-->>B: hit → served from Mumbai, origin untouched
 ```
 
-- The URL points at the CDN's domain (e.g. `mysite.cloudfront.net/...`).
+- The URL points at the CDN's domain (e.g. `cdn.example.in/...` mapped to the CDN provider).
 - On a **miss**, the edge fetches from the **origin** (your server or S3), caches it for the **TTL** the origin specifies, and returns it.
 - Every later request in that region is a **hit** until the TTL expires.
 

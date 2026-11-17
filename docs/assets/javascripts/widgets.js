@@ -50,14 +50,14 @@
     root.innerHTML = `
       <div class="sd-w-title">Back-of-the-envelope calculator</div>
       <div class="sd-w-row">
-        <label>Daily active users<input type="number" data-k="dau" value="150000000"></label>
-        <label>Reads / user / day<input type="number" data-k="reads" value="20"></label>
-        <label>Writes / user / day<input type="number" data-k="writes" value="2"></label>
+        <label>Daily active users<input type="number" data-k="dau" value="160000000"></label>
+        <label>Reads / user / day<input type="number" data-k="reads" value="80"></label>
+        <label>Writes / user / day<input type="number" data-k="writes" value="3"></label>
         <label>Peak factor (×avg)<input type="number" data-k="peak" value="2" step="0.5"></label>
       </div>
       <div class="sd-w-row">
         <label>Avg write size (KB)<input type="number" data-k="size" value="100"></label>
-        <label>Retention (years)<input type="number" data-k="years" value="5"></label>
+        <label>Retention (years)<input type="number" data-k="years" value="7"></label>
         <label>Replication factor<input type="number" data-k="rf" value="3"></label>
         <label>QPS one server handles<input type="number" data-k="srv" value="1000"></label>
       </div>

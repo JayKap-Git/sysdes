@@ -98,32 +98,36 @@ Pick the relevant ones — don't machine-gun all of them.
 
 ### Turn answers into a requirements sheet
 
-Write this on the board — it's your contract with the interviewer.
+Here's how a short scoping conversation for **"design a photo-sharing app"** might go — notice that each
+answer deletes a branch of the design:
+
+!!! example "A good scoping conversation (photo sharing)"
+    **You:** Who's posting — anyone, or verified creators only? — **Interviewer:** Anyone.
+    **You:** Core actions? — **I:** Upload a photo with a caption, follow people, scroll a home feed.
+    **You:** Is the home feed ranked or chronological? — **I:** Chronological for now.
+    **You:** How big? — **I:** 50M DAU; a typical user uploads every few days but opens the feed ~8 times a day.
+    **You:** Max photo size, and do we keep originals? — **I:** Up to 10 MB; keep originals plus resized versions.
+    **You:** Any users with huge followings? — **I:** Yes, some accounts have tens of millions of followers.
+
+    "Chronological" removes a ranking service. "Tens of millions of followers" warns you that pure fan-out-on-write
+    will hurt. "Keep originals + resized" means an async image-processing pipeline, object storage and a CDN.
+
+Write the result on the board — it's your contract with the interviewer:
 
 ```text
 FUNCTIONAL
-  1. Users can post text + images/videos
-  2. Users see a feed of friends' posts, newest first
+  1. Upload photo (≤10 MB) + caption
+  2. Follow / unfollow
+  3. Home feed of followed accounts, newest first
 NON-FUNCTIONAL
-  - 10M DAU, up to 5,000 friends each
-  - Feed load p99 < 300 ms; availability > consistency (a few seconds stale is fine)
+  - 50M DAU; feed p99 < 300 ms; uploads may take a few seconds to appear
+  - Availability over consistency for the feed; never lose an uploaded photo
 OUT OF SCOPE
-  - Ranking/ML, ads, comments
+  - Ranking, stories, DMs, ads
 ESTIMATES (Ch. 2)
-  - Feed reads ≈ 10M × 10 / 10^5 = 1K QPS avg, ~3K peak
-  - Posts ≈ 10M × 1 / 10^5 = 100 QPS
+  - Feed loads ≈ 50M × 8 / 10^5 = 4K QPS avg, ~10K peak
+  - Uploads ≈ 50M × 0.3 / 10^5 = 150/s; 15M/day × ~3 MB stored (orig + sizes) ≈ 45 TB/day
 ```
-
-!!! example "A good scoping conversation (news feed)"
-    **You:** Mobile, web, or both? — **Interviewer:** Both.
-    **You:** What are the must-have features? — **I:** Publish a post, and see friends' feed.
-    **You:** Is the feed newest-first, or ranked by relevance? — **I:** Keep it simple: newest first.
-    **You:** How many friends can a user have? — **I:** Up to 5,000.
-    **You:** Traffic? — **I:** 10M DAU.
-    **You:** Text only, or media too? — **I:** Images and videos too.
-
-    Notice each question **removes a design branch**: "newest first" means no ranking service; "5,000 friends"
-    caps fan-out; "media" means object storage + CDN.
 
 ---
 
@@ -132,43 +136,46 @@ ESTIMATES (Ch. 2)
 Goal: a **blueprint both of you agree on** before going deep.
 
 1. **Sketch the boxes**: clients → (DNS/CDN) → load balancer → services → cache → databases → queues/workers → object storage.
-2. **Walk a request through it** — "a user posts a photo: the app uploads to blob storage via a pre-signed URL, then calls `POST /posts`…" Concrete use cases expose missing pieces.
-3. **Sanity-check against your estimates** — "1K QPS of feed reads — fine for a cache-backed service."
+2. **Walk a request through it** — "a user uploads: the app gets a pre-signed URL, uploads straight to blob storage, then calls `POST /photos`…" Concrete use cases expose missing pieces.
+3. **Sanity-check against your estimates** — "10K QPS of feed reads at peak — fine for a cache-backed feed service."
 4. **Ask for feedback** — "Does this direction make sense before I go deeper?" Treat the interviewer as a teammate.
 
 ### APIs and data model — include them?
 
-Depends on the problem. For "design Google Search" it's too low-level. For "design a URL shortener" or
-"a multiplayer poker backend", the API and schema *are* the design. When in doubt, sketch the 2–4 core APIs:
+Depends on the problem. For "design web search" it's too low-level. For "design a URL shortener" or
+"a multiplayer game backend", the API and schema *are* the design. When in doubt, sketch the 2–4 core APIs:
 
 ```http
-POST /v1/posts            { content, media_ids[] }        → 201 { post_id }
-GET  /v1/feed?cursor=...  → 200 { posts[], next_cursor }
+POST /v1/photos/upload-url  → 200 { upload_url, photo_id }     # pre-signed URL to object storage
+POST /v1/photos             { photo_id, caption }  → 201
+GET  /v1/feed?cursor=...    → 200 { items[], next_cursor }
 ```
 
 and the 2–3 core tables:
 
 ```text
-users(user_id PK, name, ...)
-posts(post_id PK, author_id, content, media_urls, created_at)
+users(user_id PK, handle, ...)
+photos(photo_id PK, owner_id, caption, storage_key, created_at)
 follows(follower_id, followee_id, created_at)   PK(follower_id, followee_id)
 ```
 
-### Example: the news-feed high-level design
+### Example: the photo-sharing high-level design
 
 ```mermaid
 flowchart LR
-    C[Client] --> LB{{Load balancer}}
-    LB --> WS[Web servers]
-    WS -->|publish| PS[Post service] --> PC[(Post cache)] & PDB[(Post DB)]
-    WS -->|publish| FO[Fan-out service] --> FC[(News feed cache)]
-    WS -->|read feed| NF[News feed service] --> FC
-    FO --> G[(Graph DB<br/>friends)]
+    C[Client] -->|1. get upload URL| API[API servers]
+    C -->|2. PUT bytes| OBJ[(Object storage)]
+    C -->|3. POST /photos| API
+    API --> META[(Photo + follow DB)]
+    API -->|new photo event| Q[[Queue]]
+    Q --> IMG[Resize workers] --> OBJ
+    Q --> FAN[Feed builder] --> FC[(Feed cache)]
+    C -->|read feed| API --> FC
+    OBJ --> CDN[(CDN)] --> C
 ```
 
-Two flows: **feed publishing** (write the post, push it into friends' feeds) and **feed building/retrieval**
-(read the precomputed feed). The details are Chapter 11's job — here, notice how little detail you need to
-get agreement.
+The upload path and the feed path are separate, and heavy work (resizing, feed building) happens
+asynchronously behind a queue. That's enough detail to get agreement — Chapter 11 goes deep on feeds.
 
 ---
 
@@ -211,27 +218,26 @@ The interviewer may ask open-ended follow-ups or let you choose. Use these to sh
 
 ---
 
-## Dos and don'ts
+## Habits that score well — and ones that cost you
 
 <div class="grid" markdown>
 
-!!! success "Do"
-    - Ask for clarification; never assume your assumption is correct.
-    - Understand the requirements before designing.
-    - Remember there's **no single right answer** — a startup and a big tech company design differently.
-    - **Think out loud.** Communicate constantly.
-    - Offer multiple approaches when it makes sense, then pick one with reasons.
-    - Design the most critical components first once you agree on the blueprint.
-    - Bounce ideas off the interviewer — a good one acts as a teammate.
-    - **Never give up.**
+!!! success "Habits that score"
+    - Treat every assumption as a question until the interviewer confirms it.
+    - Say the requirements back before drawing anything.
+    - Remember the "right" design depends on context — a 5-person startup and a hyperscaler make different calls.
+    - Narrate your reasoning; the interviewer grades what they hear.
+    - When there's a real fork, name both paths, pick one, and say what it costs.
+    - Once the blueprint is agreed, spend time on the riskiest component first.
+    - Use the interviewer as a collaborator — their hints are free signal.
+    - Keep going when stuck; reasoning out loud still earns credit.
 
-!!! failure "Don't"
-    - Walk in unprepared for typical questions.
-    - Jump into a solution without clarifying.
-    - Go deep into one component before the big picture is agreed.
-    - Hesitate to ask for hints when you're stuck.
-    - Go silent.
-    - Think the interview is over once you've drawn a design — it isn't over until the interviewer says so. Ask for feedback early and often.
+!!! failure "Habits that cost you"
+    - Showing up without having practised the common problems.
+    - Drawing before asking.
+    - Polishing one box in detail while the rest of the system is still blank.
+    - Sitting stuck in silence instead of asking for a nudge.
+    - Treating the first diagram as "done" — keep checking in until the interviewer closes the session.
 
 </div>
 

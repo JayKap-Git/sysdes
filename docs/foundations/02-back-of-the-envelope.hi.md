@@ -156,36 +156,36 @@ Servers            = Peak QPS / (ek server kitna QPS sambhale)  + headroom
 
 ### Interactive calculator
 
-Koi bhi input badlo, poori chain dobara calculate hoti hai. Defaults neeche Worked Example 1 se match karte hain.
+Koi bhi input badlo, poori chain dobara calculate hoti hai. Defaults neeche Worked Example 1 se match karte hain (100 KB *average* write hai: 20% posts × 500 KB image).
 
 <div class="sd-widget" data-widget="estimator"></div>
 
 ---
 
-## Worked example 1 · Twitter jaisi service
+## Worked example 1 · Ek microblogging service
 
-*(Numbers practice ke liye banaye hue hain — Twitter ke asli figures nahi.)*
+*(Numbers practice ke liye banaye hue hain.)*
 
 **Assumptions** — pehle board pe likho:
 
-- 300 M monthly active users, 50% roz use karte hain.
-- Har daily user **2** tweets post karta hai aur **~100** tweets padhta hai (timeline loads).
-- 10% tweets mein ~1 MB ki image hai (video abhi ignore).
-- Data 5 saal rakhna hai.
+- 400 M monthly active users, 40% roz use karte hain.
+- Har daily user **3** posts publish karta hai aur **~80** posts padhta hai (timeline loads).
+- 20% posts mein ~500 KB ki image hai (video abhi ignore).
+- Sab kuch 7 saal rakhna hai.
 
 **QPS**
 
-- DAU = 300 M × 50% = **150 M**
-- Write QPS = 150 M × 2 / 86,400 ≈ 300 M / 10⁵ ≈ **3,500 tweets/sec**; peak (×2) ≈ **7,000**
-- Read QPS = 150 M × 100 / 10⁵ ≈ **150,000 tweet reads/sec** → read-heavy (~50:1) → **caching aur precomputed timelines** zaroori (Chapter 11).
+- DAU = 400 M × 40% = **160 M**
+- Write QPS = 160 M × 3 / 86,400 ≈ 480 M / 10⁵ ≈ **4,800 posts/sec**; peak (×2) ≈ **~10,000**
+- Read QPS = 160 M × 80 / 10⁵ ≈ **128,000 post reads/sec** → read-heavy (~27:1) → **caching aur precomputed timelines** zaroori (Chapter 11).
 
 **Storage**
 
-- Har tweet ka text + metadata: id 8 B + user id 8 B + text ~300 B + timestamps/counters ~100 B ≈ **~0.5 KB**
-- Text/din = 300 M tweets × 0.5 KB = **150 GB/din** → ×365×5 ≈ **275 TB** (replication se pehle)
-- Media/din = 300 M × 10% × 1 MB = **30 TB/din** → ×365×5 ≈ **55 PB**
+- Har post ka text + metadata: id 8 B + author id 8 B + text ~300 B + timestamps/counters ~100 B ≈ **~0.5 KB**
+- Text/din = 480 M posts × 0.5 KB = **240 GB/din** → ×365×7 ≈ **~0.6 PB** (replication se pehle)
+- Media/din = 480 M × 20% × 500 KB = **48 TB/din** → ×365×7 ≈ **~123 PB**
 
-**Numbers kya bata rahe hain:** media text se ~200× bada hai. Text sharded database mein jaayega; media **object storage
+**Numbers kya bata rahe hain:** media text se ~200× bhaari hai. Text sharded database mein jaayega; media **object storage
 (S3) + CDN** mein. Yeh ek observation poore architecture ko shape karta hai.
 
 ---
@@ -248,7 +248,7 @@ unpopular videos ke kam renditions — first-class design topics ban jaate hain 
 
 !!! tip "Interview mein estimate kaise karein"
     1. **Pehle assumptions bolo**, aur confirm karo: "Main 100 M DAU maan raha hoon — theek lag raha hai?"
-    2. **Bindaas round karo.** 99,987 / 9.1 → 100,000 / 10 = 10,000. Koi decimal precision expect nahi karta.
+    2. **Bindaas round karo.** 48,213 × 6.8 → 50,000 × 7 = 350,000. Koi decimal precision expect nahi karta.
     3. **Har unit likho.** "5" ka koi matlab nahi; "5 MB/s" ka hai.
     4. **Reads aur writes alag karo** — dono alag components ki taraf le jaate hain (cache vs write-optimised storage).
     5. **Numbers ko decisions mein badlo** — "toh writes ek DB sambhal lega, par reads ko cache chahiye".

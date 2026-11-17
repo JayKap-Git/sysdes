@@ -45,9 +45,9 @@ sequenceDiagram
     participant U as User (browser / app)
     participant D as DNS
     participant S as Web server
-    U->>D: api.mysite.com kahan hai?
-    D-->>U: 15.125.23.214
-    U->>S: GET /users/12 (HTTP)
+    U->>D: shop.example.in kahan hai?
+    D-->>U: 203.0.113.42
+    U->>S: GET /products/42 (HTTP)
     S->>S: business logic chalao, DB padho
     S-->>U: 200 OK + JSON / HTML
 ```
@@ -56,7 +56,7 @@ sequenceDiagram
 2. Client us IP pe seedha **HTTP request** bhejta hai.
 3. Server **HTML** (browser ke liye) ya **JSON** (mobile apps aur SPAs ke liye) wapas bhejta hai.
 
-Traffic do tarah ke clients se aata hai: **web apps** (Java/Python/Go mein server-side code + browser mein HTML/JS) aur **mobile apps** (HTTP pe baat karte hain, mostly JSON — jaise `GET /users/12 → {"id":12,"name":"Asha"}`).
+Traffic do tarah ke clients se aata hai: **web apps** (Java/Python/Go mein server-side code + browser mein HTML/JS) aur **mobile apps** (HTTP pe baat karte hain, mostly JSON — jaise `GET /products/42 → {"id":42,"name":"Kurta","price":899}`).
 
 !!! warning "Yeh zyada din kyun nahi chalega"
     Ek machine = ek **single point of failure (SPOF)**. Woh reboot hui toh product band. Aur CPU, RAM, disk
@@ -295,15 +295,15 @@ sequenceDiagram
     participant E as CDN edge (Mumbai)
     participant O as Origin (S3 / web server)
     participant B as User B (Pune)
-    A->>E: GET cdn.mysite.com/logo.png
+    A->>E: GET cdn.example.in/logo.png
     E->>O: miss → logo.png laao
     O-->>E: logo.png + Cache-Control TTL
     E-->>A: logo.png (ab edge pe cached)
-    B->>E: GET cdn.mysite.com/logo.png
+    B->>E: GET cdn.example.in/logo.png
     E-->>B: hit → Mumbai se hi serve, origin ko pata bhi nahi
 ```
 
-- URL CDN ke domain ki taraf point karta hai (jaise `mysite.cloudfront.net/...`).
+- URL CDN ke domain ki taraf point karta hai (jaise `cdn.example.in/...`, jo CDN provider pe mapped hai).
 - **Miss** pe edge **origin** (tumhara server ya S3) se laata hai, origin ke bataye **TTL** tak cache karta hai, aur return karta hai.
 - Us region ki har agli request TTL khatam hone tak **hit** hai.
 

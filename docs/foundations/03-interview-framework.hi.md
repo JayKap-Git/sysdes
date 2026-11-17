@@ -98,32 +98,36 @@ Relevant waale chuno — saare ek saath machine-gun mat karo.
 
 ### Jawabon ko requirements sheet mein badlo
 
-Yeh board pe likho — yeh interviewer ke saath tumhara contract hai.
+**"Photo-sharing app design karo"** ke liye ek chhoti scoping baatcheet kuch aisi ho sakti hai — dhyaan do, har jawab design ki
+ek branch kaat deta hai:
+
+!!! example "Ek achhi scoping baatcheet (photo sharing)"
+    **Tum:** Post kaun karta hai — koi bhi, ya sirf verified creators? — **Interviewer:** Koi bhi.
+    **Tum:** Core actions? — **I:** Caption ke saath photo upload, logon ko follow karna, home feed scroll karna.
+    **Tum:** Home feed ranked hai ya chronological? — **I:** Abhi ke liye chronological.
+    **Tum:** Kitna bada? — **I:** 50M DAU; typical user kuch dino mein ek baar upload karta hai par feed din mein ~8 baar kholta hai.
+    **Tum:** Max photo size, aur originals rakhne hain? — **I:** 10 MB tak; originals aur resized versions dono.
+    **Tum:** Koi users jinke bahut zyada followers hain? — **I:** Haan, kuch accounts ke crore se zyada followers hain.
+
+    "Chronological" ranking service hata deta hai. "Crore se zyada followers" warning hai ki pure fan-out-on-write dard dega.
+    "Originals + resized" matlab async image-processing pipeline, object storage aur CDN.
+
+Result board pe likho — yeh interviewer ke saath tumhara contract hai:
 
 ```text
 FUNCTIONAL
-  1. Users text + images/videos post kar sakein
-  2. Users dosto ke posts ka feed dekhein, naya pehle
+  1. Photo upload (≤10 MB) + caption
+  2. Follow / unfollow
+  3. Followed accounts ka home feed, naya pehle
 NON-FUNCTIONAL
-  - 10M DAU, har user ke 5,000 tak dost
-  - Feed load p99 < 300 ms; consistency se zyada availability (kuch seconds stale chalega)
+  - 50M DAU; feed p99 < 300 ms; upload dikhne mein kuch second lag sakte hain
+  - Feed ke liye consistency se zyada availability; uploaded photo kabhi na khoye
 OUT OF SCOPE
-  - Ranking/ML, ads, comments
+  - Ranking, stories, DMs, ads
 ESTIMATES (Ch. 2)
-  - Feed reads ≈ 10M × 10 / 10^5 = 1K QPS avg, ~3K peak
-  - Posts ≈ 10M × 1 / 10^5 = 100 QPS
+  - Feed loads ≈ 50M × 8 / 10^5 = 4K QPS avg, ~10K peak
+  - Uploads ≈ 50M × 0.3 / 10^5 = 150/s; 15M/din × ~3 MB stored (orig + sizes) ≈ 45 TB/din
 ```
-
-!!! example "Ek achhi scoping baatcheet (news feed)"
-    **Tum:** Mobile, web, ya dono? — **Interviewer:** Dono.
-    **Tum:** Must-have features kya hain? — **I:** Post publish karna, aur dosto ka feed dekhna.
-    **Tum:** Feed newest-first hai ya relevance se ranked? — **I:** Simple rakho: newest first.
-    **Tum:** Ek user ke kitne dost ho sakte hain? — **I:** 5,000 tak.
-    **Tum:** Traffic? — **I:** 10M DAU.
-    **Tum:** Sirf text, ya media bhi? — **I:** Images aur videos bhi.
-
-    Dhyaan do, har sawaal **design ki ek branch kaat deta hai**: "newest first" matlab ranking service nahi; "5,000 dost"
-    fan-out ko limit karta hai; "media" matlab object storage + CDN.
 
 ---
 
@@ -132,42 +136,46 @@ ESTIMATES (Ch. 2)
 Goal: deep jaane se pehle **ek blueprint jis pe dono agree karo**.
 
 1. **Boxes sketch karo**: clients → (DNS/CDN) → load balancer → services → cache → databases → queues/workers → object storage.
-2. **Ek request ko usme se chalao** — "user photo post karta hai: app pre-signed URL se blob storage pe upload karta hai, phir `POST /posts` call karta hai…" Concrete use cases missing hisse dikha dete hain.
-3. **Estimates se sanity-check** — "1K QPS feed reads — cache-backed service ke liye theek hai."
+2. **Ek request ko usme se chalao** — "user upload karta hai: app pre-signed URL leta hai, seedha blob storage pe upload karta hai, phir `POST /photos` call karta hai…" Concrete use cases missing hisse dikha dete hain.
+3. **Estimates se sanity-check** — "peak pe 10K QPS feed reads — cache-backed feed service ke liye theek hai."
 4. **Feedback maango** — "Aage gehraai mein jaane se pehle kya yeh direction sahi lag rahi hai?" Interviewer ko teammate samjho.
 
 ### APIs aur data model — daalein ya nahi?
 
-Problem pe depend karta hai. "Google Search design karo" ke liye yeh bahut low-level hai. "URL shortener" ya
-"multiplayer poker backend" ke liye API aur schema *hi* design hain. Doubt ho toh 2–4 core APIs sketch kar do:
+Problem pe depend karta hai. "Web search design karo" ke liye yeh bahut low-level hai. "URL shortener" ya
+"multiplayer game backend" ke liye API aur schema *hi* design hain. Doubt ho toh 2–4 core APIs sketch kar do:
 
 ```http
-POST /v1/posts            { content, media_ids[] }        → 201 { post_id }
-GET  /v1/feed?cursor=...  → 200 { posts[], next_cursor }
+POST /v1/photos/upload-url  → 200 { upload_url, photo_id }     # object storage ka pre-signed URL
+POST /v1/photos             { photo_id, caption }  → 201
+GET  /v1/feed?cursor=...    → 200 { items[], next_cursor }
 ```
 
 aur 2–3 core tables:
 
 ```text
-users(user_id PK, name, ...)
-posts(post_id PK, author_id, content, media_urls, created_at)
+users(user_id PK, handle, ...)
+photos(photo_id PK, owner_id, caption, storage_key, created_at)
 follows(follower_id, followee_id, created_at)   PK(follower_id, followee_id)
 ```
 
-### Example: news-feed ka high-level design
+### Example: photo-sharing ka high-level design
 
 ```mermaid
 flowchart LR
-    C[Client] --> LB{{Load balancer}}
-    LB --> WS[Web servers]
-    WS -->|publish| PS[Post service] --> PC[(Post cache)] & PDB[(Post DB)]
-    WS -->|publish| FO[Fan-out service] --> FC[(News feed cache)]
-    WS -->|feed padho| NF[News feed service] --> FC
-    FO --> G[(Graph DB<br/>dost)]
+    C[Client] -->|1. upload URL lo| API[API servers]
+    C -->|2. bytes PUT karo| OBJ[(Object storage)]
+    C -->|3. POST /photos| API
+    API --> META[(Photo + follow DB)]
+    API -->|new photo event| Q[[Queue]]
+    Q --> IMG[Resize workers] --> OBJ
+    Q --> FAN[Feed builder] --> FC[(Feed cache)]
+    C -->|feed padho| API --> FC
+    OBJ --> CDN[(CDN)] --> C
 ```
 
-Do flows: **feed publishing** (post likho, dosto ke feeds mein push karo) aur **feed building/retrieval** (precomputed feed
-padho). Details Chapter 11 ka kaam hai — yahan dekho ki agreement ke liye kitni kam detail chahiye.
+Upload path aur feed path alag hain, aur bhaari kaam (resizing, feed building) queue ke peeche asynchronously hota hai.
+Agreement ke liye itni detail kaafi hai — feeds ka gehraai waala kaam Chapter 11 mein.
 
 ---
 
@@ -210,27 +218,26 @@ Interviewer open-ended follow-ups pooch sakta hai ya tumhe chunne de sakta hai. 
 
 ---
 
-## Kya karein, kya na karein
+## Aadatein jo score karti hain — aur jo nuksaan karti hain
 
 <div class="grid" markdown>
 
-!!! success "Karo"
-    - Clarification maango; kabhi mat maano ki tumhara assumption sahi hi hai.
-    - Design se pehle requirements samjho.
-    - Yaad rakho **ek hi sahi answer nahi hota** — startup aur big tech alag design karte hain.
-    - **Zor se socho.** Lagatar communicate karo.
-    - Jahan sense ho wahan multiple approaches do, phir reason ke saath ek chuno.
-    - Blueprint agree hone ke baad sabse critical components pehle design karo.
-    - Interviewer se ideas bounce karo — achha interviewer teammate ki tarah behave karta hai.
-    - **Haar mat maano.**
+!!! success "Score karne waali aadatein"
+    - Har assumption ko tab tak sawaal samjho jab tak interviewer confirm na kare.
+    - Kuch bhi draw karne se pehle requirements dohra ke bolo.
+    - Yaad rakho "sahi" design context pe depend karta hai — 5 logon ka startup aur hyperscaler alag decisions lete hain.
+    - Apni reasoning bolte jao; interviewer wahi grade karta hai jo sunta hai.
+    - Jab asli fork ho, dono raaste batao, ek chuno, aur uski keemat bolo.
+    - Blueprint agree hone ke baad sabse risky component pe pehle time do.
+    - Interviewer ko collaborator ki tarah use karo — unke hints free signal hain.
+    - Atak jao toh bhi chalte raho; zor se reasoning karne pe bhi credit milta hai.
 
-!!! failure "Mat karo"
-    - Typical questions ke liye bina tayyari ke jaana.
-    - Bina clarify kiye solution mein koodna.
-    - Big picture agree hone se pehle ek component mein bahut gehraai mein jaana.
-    - Atak jao toh hint maangne mein jhijhakna.
-    - Chup ho jaana.
-    - Design bana diya toh interview khatam samajhna — interviewer jab tak na bole, khatam nahi hai. Jaldi aur baar-baar feedback maango.
+!!! failure "Nuksaan karne waali aadatein"
+    - Common problems practice kiye bina pahunch jaana.
+    - Poochne se pehle draw karna.
+    - Ek box ko detail mein chamakana jab baaki system abhi khaali hai.
+    - Hint maangne ki jagah chup-chaap atke rehna.
+    - Pehle diagram ko "done" samajhna — jab tak interviewer session band na kare, check-in karte raho.
 
 </div>
 

@@ -157,36 +157,36 @@ Servers            = Peak QPS / (QPS one server can handle)  + headroom
 
 ### Interactive calculator
 
-Change any input and the whole chain recomputes. The defaults match Worked Example 1 below.
+Change any input and the whole chain recomputes. The defaults match Worked Example 1 below (100 KB is the *average* write: 20% of posts × 500 KB image).
 
 <div class="sd-widget" data-widget="estimator"></div>
 
 ---
 
-## Worked example 1 · A Twitter-like service
+## Worked example 1 · A microblogging service
 
-*(Numbers are made up for practice — they're not Twitter's real figures.)*
+*(Numbers are invented for practice.)*
 
 **Assumptions** — write these on the board first:
 
-- 300 M monthly active users, 50% use it daily.
-- Each daily user posts **2** tweets and reads **~100** tweets (timeline loads).
-- 10% of tweets carry an image of ~1 MB (we'll ignore video here).
-- Keep data for 5 years.
+- 400 M monthly active users, 40% use it daily.
+- Each daily user publishes **3** posts and reads **~80** posts (timeline loads).
+- 20% of posts carry an image of ~500 KB (ignore video for now).
+- Keep everything for 7 years.
 
 **QPS**
 
-- DAU = 300 M × 50% = **150 M**
-- Write QPS = 150 M × 2 / 86,400 ≈ 300 M / 10⁵ ≈ **3,500 tweets/sec**; peak (×2) ≈ **7,000**
-- Read QPS = 150 M × 100 / 10⁵ ≈ **150,000 tweet reads/sec** → read-heavy (~50:1) → **caching and precomputed timelines** are mandatory (Chapter 11).
+- DAU = 400 M × 40% = **160 M**
+- Write QPS = 160 M × 3 / 86,400 ≈ 480 M / 10⁵ ≈ **4,800 posts/sec**; peak (×2) ≈ **~10,000**
+- Read QPS = 160 M × 80 / 10⁵ ≈ **128,000 post reads/sec** → read-heavy (~27:1) → **caching and precomputed timelines** are mandatory (Chapter 11).
 
 **Storage**
 
-- Text + metadata per tweet: id 8 B + user id 8 B + text ~300 B + timestamps/counters ~100 B ≈ **~0.5 KB**
-- Text/day = 300 M tweets × 0.5 KB = **150 GB/day** → ×365×5 ≈ **275 TB** (before replication)
-- Media/day = 300 M × 10% × 1 MB = **30 TB/day** → ×365×5 ≈ **55 PB**
+- Text + metadata per post: id 8 B + author id 8 B + text ~300 B + timestamps/counters ~100 B ≈ **~0.5 KB**
+- Text/day = 480 M posts × 0.5 KB = **240 GB/day** → ×365×7 ≈ **~0.6 PB** (before replication)
+- Media/day = 480 M × 20% × 500 KB = **48 TB/day** → ×365×7 ≈ **~123 PB**
 
-**What the numbers tell us:** media dwarfs text by ~200×. Text belongs in a sharded database; media
+**What the numbers tell us:** media outweighs text by ~200×. Text belongs in a sharded database; media
 belongs in **object storage (S3) + CDN**. That single observation shapes the whole architecture.
 
 ---
@@ -249,7 +249,7 @@ compress better, store fewer renditions for unpopular videos — become first-cl
 
 !!! tip "How to estimate in an interview"
     1. **State assumptions first**, and confirm them: "I'll assume 100 M DAU — does that sound right?"
-    2. **Round ruthlessly.** 99,987 / 9.1 → 100,000 / 10 = 10,000. Nobody expects decimal precision.
+    2. **Round ruthlessly.** 48,213 × 6.8 → 50,000 × 7 = 350,000. Nobody expects decimal precision.
     3. **Label every unit.** "5" is meaningless; "5 MB/s" isn't.
     4. **Separate reads from writes** — they lead to different components (cache vs. write-optimised storage).
     5. **Translate numbers into decisions** — "so a single DB can handle the writes, but reads need a cache".
